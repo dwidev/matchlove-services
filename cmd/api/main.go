@@ -8,10 +8,6 @@ import (
 	"matchlove-services/pkg/database"
 )
 
-type Test struct {
-	Name string
-}
-
 func main() {
 	cfg := config.Load()
 	db, err := database.Open(cfg.DB_DSN)

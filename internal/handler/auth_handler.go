@@ -35,15 +35,15 @@ func (handler *authHandler) LoginWithEmail(c *fiber.Ctx) error {
 	type Dto struct {
 		Email string `json:"email" validate:"required,email"`
 	}
-	dto := new(Dto)
-	if err := c.BodyParser(dto); err != nil {
+	request := new(Dto)
+	if err := c.BodyParser(request); err != nil {
 		return response.CatchFiberError(err)
 	}
 
-	if listErr := helper.Validation(handler.Validator, dto); len(listErr) != 0 {
+	if listErr := helper.Validation(handler.Validator, request); len(listErr) != 0 {
 		return response.FieldErrorResponse(c, listErr)
 	}
-	res, err := handler.service.OnLoginWithEmail(dto.Email)
+	res, err := handler.service.OnLoginWithEmail(request.Email)
 
 	if err != nil {
 		return response.CatchFiberError(err)
