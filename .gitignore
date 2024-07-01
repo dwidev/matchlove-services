@@ -1,0 +1,10 @@
+tmp/
+
+http_logs.log
+my_logs.log
+app.log
+
+pkg/config/config.yml
+
+.idea
+.vscode
