@@ -1,20 +1,23 @@
 package router
 
 import (
-	"matchlove-services/pkg/config"
-
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
+	"matchlove-services/internal/handler"
+	"matchlove-services/pkg/config"
 )
 
-type Router struct {
-	Validator *validator.Validate
-	Engine    *fiber.App
-	Config    *config.Schema
-	DB        *gorm.DB
+type Handler struct {
+	UserHandler handler.IUserHandler
+	AuthHandler handler.IAuthHandler
+}
 
-	v1 fiber.Router
+type Router struct {
+	Config  *config.Schema
+	Engine  *fiber.App
+	Handler *Handler
+
+	v1                      fiber.Router
+	accessWare, refreshWare *fiber.Handler
 }
 
 func (r *Router) Build() {

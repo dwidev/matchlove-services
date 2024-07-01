@@ -1,12 +1,11 @@
 package main
 
 import (
+	"github.com/sirupsen/logrus"
 	"log"
 	server "matchlove-services/internal"
 	"matchlove-services/pkg/config"
 	"matchlove-services/pkg/database"
-
-	"github.com/sirupsen/logrus"
 )
 
 type Test struct {
@@ -20,7 +19,8 @@ func main() {
 		logrus.Fatal("error open db : ", err)
 	}
 
-	srv := server.New(cfg, db.Instance())
+	dbs := db.Instance()
+	srv := server.New(cfg, dbs)
 
 	if err := db.AutoMigrate(); err != nil {
 		logrus.Fatal("error on mingration database : ", err)

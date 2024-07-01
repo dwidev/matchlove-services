@@ -11,24 +11,24 @@ import (
 	"gorm.io/gorm"
 )
 
-type AuthRepository interface {
+type IAuthRepository interface {
 	CreateNewAccount(account *model.UserAccount) (acc *model.UserAccount, err error)
 	LoginWithEmail(email string) (acc *model.UserAccount, err error)
 	LoginWithPassword(req *dto.LoginPassRequestDTO) (acc *model.UserAccount, err error)
 	Logout(accountId string) error
 }
 
-func NewAuthRepository(db *gorm.DB) AuthRepository {
-	return &AuthRepositoryImpl{
+func NewAuthRepository(db *gorm.DB) IAuthRepository {
+	return &AuthRepository{
 		db: db,
 	}
 }
 
-type AuthRepositoryImpl struct {
+type AuthRepository struct {
 	db *gorm.DB
 }
 
-func (repo *AuthRepositoryImpl) CreateNewAccount(account *model.UserAccount) (*model.UserAccount, error) {
+func (repo *AuthRepository) CreateNewAccount(account *model.UserAccount) (*model.UserAccount, error) {
 	if err := repo.db.Create(&account).Error; err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (repo *AuthRepositoryImpl) CreateNewAccount(account *model.UserAccount) (*m
 	return account, nil
 }
 
-func (repo *AuthRepositoryImpl) LoginWithEmail(email string) (*model.UserAccount, error) {
+func (repo *AuthRepository) LoginWithEmail(email string) (*model.UserAccount, error) {
 	account := new(model.UserAccount)
 	where := &model.UserAccount{Email: email}
 	err := repo.db.Where(where).First(account).Error
@@ -51,7 +51,7 @@ func (repo *AuthRepositoryImpl) LoginWithEmail(email string) (*model.UserAccount
 	return account, err
 }
 
-func (repo *AuthRepositoryImpl) LoginWithPassword(req *dto.LoginPassRequestDTO) (*model.UserAccount, error) {
+func (repo *AuthRepository) LoginWithPassword(req *dto.LoginPassRequestDTO) (*model.UserAccount, error) {
 	account, err := repo.LoginWithEmail(req.Email)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (repo *AuthRepositoryImpl) LoginWithPassword(req *dto.LoginPassRequestDTO) 
 	return account, nil
 }
 
-func (repo *AuthRepositoryImpl) Logout(accountId string) error {
+func (repo *AuthRepository) Logout(accountId string) error {
 	err := repo.UpdateAccountRefreshToken(accountId, "")
 	if err != nil {
 		panic(err)
@@ -74,7 +74,7 @@ func (repo *AuthRepositoryImpl) Logout(accountId string) error {
 	return nil
 }
 
-func (repo *AuthRepositoryImpl) GetAccountByUserID(accountId string) (*model.UserAccount, error) {
+func (repo *AuthRepository) GetAccountByUserID(accountId string) (*model.UserAccount, error) {
 	account := new(model.UserAccount)
 	where := &model.UserAccount{Uuid: uuid.MustParse(accountId)}
 	result := repo.db.Where(where).First(&account)
@@ -86,7 +86,7 @@ func (repo *AuthRepositoryImpl) GetAccountByUserID(accountId string) (*model.Use
 	return account, nil
 }
 
-func (repo *AuthRepositoryImpl) UpdateAccountRefreshToken(accountId string, newRefreshToken string) error {
+func (repo *AuthRepository) UpdateAccountRefreshToken(accountId string, newRefreshToken string) error {
 	account := new(model.UserAccount)
 	where := &model.UserAccount{Uuid: uuid.MustParse(accountId)}
 	result := repo.db.Model(account).Where(where).Update("refresh_token", newRefreshToken)

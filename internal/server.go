@@ -5,6 +5,7 @@ import (
 	"io"
 	"matchlove-services/internal/router"
 	"matchlove-services/pkg/config"
+	"matchlove-services/pkg/injection"
 	"matchlove-services/pkg/middleware"
 	"os"
 
@@ -15,27 +16,27 @@ import (
 	"gorm.io/gorm"
 )
 
-type server struct {
+type Server struct {
 	engine *fiber.App
 	db     *gorm.DB
 	config *config.Schema
 }
 
-func New(config *config.Schema, db *gorm.DB) *server {
-	return &server{
+func New(config *config.Schema, db *gorm.DB) *Server {
+	return &Server{
 		engine: fiber.New(),
 		config: config,
 		db:     db,
 	}
 }
 
-func (s *server) Start() error {
+func (s Server) Start() error {
 	// setup
 	s.setupMiddleware()
 	s.setupRoutes()
 	s.setupLogger()
 
-	// healty check
+	// health check
 	s.engine.Get("/health", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).SendString("OK")
 	})
@@ -50,8 +51,8 @@ func (s *server) Start() error {
 	return nil
 }
 
-func (s server) setupMiddleware() {
-	revocer := middleware.RecoverPanicLogging()
+func (s Server) setupMiddleware() {
+	panicLogging := middleware.RecoverPanicLogging()
 
 	s.engine.Use(cors.New(cors.Config{
 		AllowOrigins:     "*",
@@ -60,10 +61,10 @@ func (s server) setupMiddleware() {
 		AllowCredentials: true,
 	}))
 	s.engine.Use(middleware.Logging)
-	s.engine.Use(revocer)
+	s.engine.Use(panicLogging)
 }
 
-func (s server) setupLogger() {
+func (s Server) setupLogger() {
 	lumberjackLogger := &lumberjack.Logger{
 		Filename:   "app.log",
 		MaxSize:    10,
@@ -72,8 +73,8 @@ func (s server) setupLogger() {
 		Compress:   true,
 	}
 
-	multiwritter := io.MultiWriter(os.Stdout, lumberjackLogger)
-	logrus.SetOutput(multiwritter)
+	multiWriter := io.MultiWriter(os.Stdout, lumberjackLogger)
+	logrus.SetOutput(multiWriter)
 
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: "2006-01-02 15:04:05",
@@ -81,12 +82,13 @@ func (s server) setupLogger() {
 	logrus.SetLevel(logrus.InfoLevel)
 }
 
-func (s server) setupRoutes() {
-	router := &router.Router{
-		Engine: s.engine,
-		Config: s.config,
-		DB:     s.db,
+func (s Server) setupRoutes() {
+	handler := injection.IntializeHandler(s.db)
+	route := &router.Router{
+		Engine:  s.engine,
+		Config:  s.config,
+		Handler: handler,
 	}
 
-	router.Build()
+	route.Build()
 }

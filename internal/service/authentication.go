@@ -13,8 +13,8 @@ import (
 )
 
 func NewAuthService(
-	r repository.AuthRepository,
-	ar repository.AccountRepository,
+	r repository.IAuthRepository,
+	ar repository.IAccountRepository,
 ) IAuthService {
 	return &AuthService{
 		AuthRepository:    r,
@@ -31,8 +31,8 @@ type IAuthService interface {
 }
 
 type AuthService struct {
-	repository.AuthRepository
-	repository.AccountRepository
+	AuthRepository    repository.IAuthRepository
+	AccountRepository repository.IAccountRepository
 }
 
 func (s *AuthService) OnLoginWithEmail(email string) (*dto.SuccessLoginResponseDTO, error) {

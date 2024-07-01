@@ -11,14 +11,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func NewAuthHandler(validate *validator.Validate, service service.AuthService) AuthHandler {
+func NewAuthHandler(validate *validator.Validate, service service.IAuthService) IAuthHandler {
 	return &authHandler{
 		service:   service,
 		Validator: validate,
 	}
 }
 
-type AuthHandler interface {
+type IAuthHandler interface {
 	LoginWithEmail(c *fiber.Ctx) error
 	LoginWithEmailPassword(c *fiber.Ctx) error
 	Logout(c *fiber.Ctx) error
@@ -28,7 +28,7 @@ type AuthHandler interface {
 
 type authHandler struct {
 	Validator *validator.Validate
-	service   service.AuthService
+	service   service.IAuthService
 }
 
 func (handler *authHandler) LoginWithEmail(c *fiber.Ctx) error {

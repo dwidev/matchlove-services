@@ -16,7 +16,7 @@ func Logging(ctx *fiber.Ctx) error {
 		return response.ErrorResponse(ctx, err)
 	}
 
-	helper.LogEntry(ctx, nil).Info("Request data")
+	helper.LogEntry(ctx, nil).Info("Incoming http request")
 	return nil
 }
 
