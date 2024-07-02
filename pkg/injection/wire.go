@@ -32,7 +32,7 @@ var (
 	)
 )
 
-func IntializeHandler(db *gorm.DB) *router.Handler {
+func InitializeHandler(db *gorm.DB) *router.Handler {
 	wire.Build(
 		validator.New,
 		reportRepositorySet,

@@ -43,8 +43,8 @@ func (handler *authHandler) LoginWithEmail(c *fiber.Ctx) error {
 	if listErr := helper.Validation(handler.Validator, request); len(listErr) != 0 {
 		return response.FieldErrorResponse(c, listErr)
 	}
-	res, err := handler.service.OnLoginWithEmail(request.Email)
 
+	res, err := handler.service.OnLoginWithEmail(request.Email)
 	if err != nil {
 		return response.CatchFiberError(err)
 	}
@@ -60,8 +60,8 @@ func (handler *authHandler) LoginWithEmailPassword(c *fiber.Ctx) error {
 	if listErr := helper.Validation(handler.Validator, user); len(listErr) != 0 {
 		return response.FieldErrorResponse(c, listErr)
 	}
-	res, err := handler.service.OnLoginWithEmailPassword(user)
 
+	res, err := handler.service.OnLoginWithEmailPassword(user)
 	if err != nil {
 		return response.CatchFiberError(err)
 	}
@@ -101,12 +101,12 @@ func (handler *authHandler) RefreshToken(c *fiber.Ctx) error {
 }
 
 func (handler *authHandler) ChangePassword(c *fiber.Ctx) error {
-	dto := new(dto.ChangePassswordDTO)
-	if err := c.BodyParser(dto); err != nil {
+	request := new(dto.ChangePassswordDTO)
+	if err := c.BodyParser(request); err != nil {
 		return response.CatchFiberError(err)
 	}
 
-	if listErr := helper.Validation(handler.Validator, dto); len(listErr) != 0 {
+	if listErr := helper.Validation(handler.Validator, request); len(listErr) != 0 {
 		return response.FieldErrorResponse(c, listErr)
 	}
 
@@ -115,7 +115,7 @@ func (handler *authHandler) ChangePassword(c *fiber.Ctx) error {
 		return response.CatchFiberError(err)
 	}
 
-	res, err := handler.service.ChangePassword(id, dto)
+	res, err := handler.service.ChangePassword(id, request)
 	if err != nil {
 		return response.CatchFiberError(err)
 	}

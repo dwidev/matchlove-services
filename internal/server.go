@@ -22,10 +22,10 @@ type Server struct {
 	config *config.Schema
 }
 
-func New(config *config.Schema, db *gorm.DB) *Server {
+func New(db *gorm.DB) *Server {
 	return &Server{
 		engine: fiber.New(),
-		config: config,
+		config: config.Get(),
 		db:     db,
 	}
 }

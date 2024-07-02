@@ -10,7 +10,10 @@ import (
 )
 
 func getUuidFromToken(c *fiber.Ctx, contextKey string) (string, error) {
-	user := c.Locals(contextKey).(*jwt.Token)
+	user, ok := c.Locals(contextKey).(*jwt.Token)
+	if !ok {
+		return "", errors.New("invalid jwt token at contextKey")
+	}
 
 	claim, ok := user.Claims.(jwt.MapClaims)
 	if !ok {

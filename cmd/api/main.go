@@ -16,7 +16,7 @@ func main() {
 	}
 
 	dbs := db.Instance()
-	srv := server.New(cfg, dbs)
+	srv := server.New(dbs)
 
 	if err := db.AutoMigrate(); err != nil {
 		logrus.Fatal("error on mingration database : ", err)
