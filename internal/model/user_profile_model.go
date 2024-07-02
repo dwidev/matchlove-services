@@ -17,6 +17,8 @@ type UserProfile struct {
 	DateOfBirth       time.Time
 	Bio               string `gorm:"type:text"`
 	ProfilePictureURL string `gorm:"size:255"`
+	Longitude         float64
+	Latitude          float64
 }
 
 func (UserProfile) TableName() string {

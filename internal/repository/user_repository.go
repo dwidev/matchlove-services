@@ -49,6 +49,8 @@ func (repo *UserRepository) RegisterUser(dto *dto.UserProfileRegisterDTO) error 
 		Gender:      dto.Gender,
 		DateOfBirth: *parseTime(dto.DOB),
 		Bio:         "",
+		Longitude:   dto.Longitude,
+		Latitude:    dto.Latitude,
 	}
 
 	// check user profile already exist
@@ -81,8 +83,6 @@ func (repo *UserRepository) RegisterUser(dto *dto.UserProfileRegisterDTO) error 
 		Distance:        float64(dto.Distance),
 		LookingFor:      dto.LookingFor,
 		InterestFor:     dto.JoinInterest(),
-		Latitude:        0,
-		Longitude:       0,
 	}
 
 	tx.Clauses(clause.OnConflict{

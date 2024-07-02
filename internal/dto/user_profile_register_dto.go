@@ -13,6 +13,8 @@ type UserProfileRegisterDTO struct {
 	Distance    int8     `json:"distance" validate:"required"`
 	LookingFor  string   `json:"lookingFor"`
 	InterestFor []string `json:"interestFor"`
+	Longitude   float64  `json:"longitude"`
+	Latitude    float64  `json:"latitude"`
 }
 
 func (u UserProfileRegisterDTO) JoinInterest() string {

@@ -1,7 +1,9 @@
 package database
 
 import (
+	"github.com/sirupsen/logrus"
 	"matchlove-services/internal/model"
+	"matchlove-services/pkg/database/seeder"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -36,16 +38,33 @@ type Database struct {
 	db *gorm.DB
 }
 
-func (d Database) Instance() *gorm.DB {
+func (d *Database) Instance() *gorm.DB {
 	return d.db
 }
 
-func (d Database) AutoMigrate() error {
+func (d *Database) AutoMigrate() error {
 	if err := d.db.AutoMigrate(
 		&model.UserAccount{},
 		&model.UserProfile{},
 		&model.UserPreference{},
+		&model.MasterInterestModel{},
 	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Database) Seeder() error {
+	err := seeder.SeedMasterInterest(d.db)
+	if err != nil {
+		logrus.Errorf("error seeding master interest: %v", err)
+		return err
+	}
+
+	err = seeder.SeedUsers(d.db)
+	if err != nil {
+		logrus.Errorf("error seeding users: %v", err)
 		return err
 	}
 

@@ -15,8 +15,6 @@ type UserPreference struct {
 	InterestFor     string `gorm:"size:255"`
 	LookingFor      string `gorm:"size:255"`
 	Distance        float64
-	Latitude        float64
-	Longitude       float64
 }
 
 func (UserPreference) TableName() string {
