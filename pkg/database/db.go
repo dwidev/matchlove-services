@@ -42,13 +42,14 @@ func (d *Database) Instance() *gorm.DB {
 	return d.db
 }
 
-func (d *Database) AutoMigrate() error {
+func (d *Database) Migration() error {
 	if err := d.db.AutoMigrate(
 		&model.UserAccount{},
 		&model.UserProfile{},
 		&model.UserPreference{},
 		&model.UserInterestModel{},
 		&model.MasterInterestModel{},
+		&model.MasterLookingFor{},
 	); err != nil {
 		return err
 	}
@@ -56,17 +57,27 @@ func (d *Database) AutoMigrate() error {
 	return nil
 }
 
-func (d *Database) Seeder() error {
-	err := seeder.SeedMasterInterest(d.db)
-	if err != nil {
-		logrus.Errorf("error seeding master interest: %v", err)
-		return err
+func (d *Database) Seeder(t seeder.RunType) error {
+	if t.Master {
+		err := seeder.SeedMasterInterest(d.db)
+		if err != nil {
+			logrus.Errorf("error seeding master interest: %v", err)
+			return err
+		}
+
+		err = seeder.SeedMasterLookingFor(d.db)
+		if err != nil {
+			logrus.Errorf("error seeding master looking for: %v", err)
+			return err
+		}
 	}
 
-	err = seeder.SeedUsers(d.db)
-	if err != nil {
-		logrus.Errorf("error seeding users: %v", err)
-		return err
+	if t.User {
+		err := seeder.SeedUsers(d.db)
+		if err != nil {
+			logrus.Errorf("error seeding users: %v", err)
+			return err
+		}
 	}
 
 	return nil

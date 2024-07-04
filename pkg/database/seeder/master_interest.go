@@ -1,7 +1,6 @@
 package seeder
 
 import (
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"matchlove-services/internal/model"
 )
@@ -66,7 +65,6 @@ func SeedMasterInterest(db *gorm.DB) error {
 	tx := db.Begin()
 	for _, value := range data {
 		m := &model.MasterInterestModel{
-			ID:   uuid.New(),
 			Code: value["code"],
 			Name: value["name"],
 		}

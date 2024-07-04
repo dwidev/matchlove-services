@@ -8,3 +8,9 @@ migrate:
 
 seed:
 	@go run cmd/api/main.go -seed
+
+seedUser:
+	@go run cmd/api/main.go -seed -user
+
+seedMaster:
+	@go run cmd/api/main.go -seed -master

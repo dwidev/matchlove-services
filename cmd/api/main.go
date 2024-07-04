@@ -7,11 +7,14 @@ import (
 	server "matchlove-services/internal"
 	"matchlove-services/pkg/config"
 	"matchlove-services/pkg/database"
+	"matchlove-services/pkg/database/seeder"
 )
 
 func main() {
 	migrate := flag.Bool("migrate", false, "migrate db")
-	seeder := flag.Bool("seed", false, "seeding db data")
+	s := flag.Bool("seed", false, "seeding db data")
+	master := flag.Bool("master", false, "master address")
+	user := flag.Bool("user", false, "user address")
 	flag.Parse()
 
 	cfg := config.Load()
@@ -27,7 +30,12 @@ func main() {
 		return
 	}
 
-	if ok := runSeeder(db, *seeder); ok {
+	seederType := seeder.RunType{
+		Seed:   *s,
+		Master: *master,
+		User:   *user,
+	}
+	if ok := runSeeder(db, seederType); ok {
 		return
 	}
 
@@ -38,7 +46,7 @@ func main() {
 
 func runMigration(db *database.Database, migrate bool) bool {
 	if migrate {
-		if err := db.AutoMigrate(); err != nil {
+		if err := db.Migration(); err != nil {
 			logrus.Fatal("error on migration database : ", err)
 		}
 		logrus.Info("migrate db success")
@@ -48,9 +56,9 @@ func runMigration(db *database.Database, migrate bool) bool {
 	return false
 }
 
-func runSeeder(db *database.Database, seed bool) bool {
-	if seed {
-		if err := db.Seeder(); err != nil {
+func runSeeder(db *database.Database, seederType seeder.RunType) bool {
+	if seederType.Seed {
+		if err := db.Seeder(seederType); err != nil {
 			logrus.Errorf("seed db error : %v", err)
 			return true
 		}
