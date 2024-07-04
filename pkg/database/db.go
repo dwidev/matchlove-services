@@ -47,6 +47,7 @@ func (d *Database) AutoMigrate() error {
 		&model.UserAccount{},
 		&model.UserProfile{},
 		&model.UserPreference{},
+		&model.UserInterestModel{},
 		&model.MasterInterestModel{},
 	); err != nil {
 		return err

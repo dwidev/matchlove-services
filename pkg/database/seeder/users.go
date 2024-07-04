@@ -3,9 +3,11 @@ package seeder
 import (
 	"fmt"
 	"github.com/google/uuid"
+	"golang.org/x/exp/rand"
 	"gorm.io/gorm"
 	"matchlove-services/internal/model"
 	"matchlove-services/pkg/helper"
+	"strings"
 	"time"
 )
 
@@ -107,11 +109,17 @@ func SeedUsers(db *gorm.DB) error {
 		{Uuid: uuid.New(), AccountUuid: "AccountUuid", PreferredGender: "Male", AgeMin: 28, AgeMax: 38, InterestFor: "MUSIC_SPOTIFY", LookingFor: "LOOKING_FRIENDS", Distance: 4.0},
 	}
 
+	db.Exec("DELETE FROM user_interest")
 	db.Exec("DELETE FROM user_preference")
 	db.Exec("DELETE FROM user_profile")
 	db.Exec("DELETE FROM user_account")
 
 	tx := db.Begin()
+	var interest []model.MasterInterestModel
+	if err := tx.Find(&interest).Error; err != nil {
+		tx.Rollback()
+	}
+
 	for i, account := range userAccountData {
 		pass, err := helper.ToHash(fmt.Sprintf("userdummy%d", i))
 		if err != nil {
@@ -124,9 +132,20 @@ func SeedUsers(db *gorm.DB) error {
 
 		profile := userProfileData[i]
 		profile.AccountUuid = account.Uuid.String()
+		r := rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
+		profile.Age = r.Intn(20) + 17
 
 		preference := userPreferenceData[i]
 		preference.AccountUuid = account.Uuid.String()
+
+		interestRandom := helper.RandomArray(interest, 2)
+		fmt.Println(len(interestRandom))
+		var interestCode []string
+		for _, i := range interestRandom {
+			interestCode = append(interestCode, i.Code)
+		}
+		preference.InterestFor = strings.Join(interestCode, "#")
+
 		if err := tx.Create(&account).Error; err != nil {
 			tx.Rollback()
 			return err
@@ -135,6 +154,18 @@ func SeedUsers(db *gorm.DB) error {
 		if err := tx.Create(&profile).Error; err != nil {
 			tx.Rollback()
 			return err
+		}
+
+		for _, code := range interestCode {
+			interest := model.UserInterestModel{
+				AccountID:    account.Uuid.String(),
+				InterestCode: code,
+			}
+
+			if err := tx.Create(&interest).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 
 		if err := tx.Create(&preference).Error; err != nil {

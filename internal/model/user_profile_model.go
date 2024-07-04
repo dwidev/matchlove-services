@@ -15,6 +15,7 @@ type UserProfile struct {
 	LastName          string `gorm:"type:varchar(50);"`
 	Gender            string `gorm:"type:enum('Male', 'Female', 'Other')"`
 	DateOfBirth       time.Time
+	Age               int
 	Bio               string `gorm:"type:text"`
 	ProfilePictureURL string `gorm:"size:255"`
 	Longitude         float64

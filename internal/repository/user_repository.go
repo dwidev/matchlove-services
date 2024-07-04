@@ -1,17 +1,15 @@
 package repository
 
 import (
-	"fmt"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"log"
 	"matchlove-services/internal/dto"
 	"matchlove-services/internal/model"
+	"matchlove-services/pkg/helper"
 	"matchlove-services/pkg/response"
-	"time"
-
-	"github.com/google/uuid"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func NewUserRepository(db *gorm.DB, ar IAccountRepository) IUserRepository {
@@ -33,10 +31,9 @@ type UserRepository struct {
 func (repo *UserRepository) RegisterUser(dto *dto.UserProfileRegisterDTO) error {
 	// start transaction
 	tx := repo.db.Begin()
-
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("recover on RegisterUser", r)
+			log.Println("panic recover on RegisterUser", r)
 			tx.Rollback()
 		}
 	}()
@@ -47,7 +44,7 @@ func (repo *UserRepository) RegisterUser(dto *dto.UserProfileRegisterDTO) error 
 		FirstName:   dto.Name,
 		LastName:    "",
 		Gender:      dto.Gender,
-		DateOfBirth: *parseTime(dto.DOB),
+		DateOfBirth: helper.ParseDateTime(dto.DOB),
 		Bio:         "",
 		Longitude:   dto.Longitude,
 		Latitude:    dto.Latitude,
@@ -71,6 +68,19 @@ func (repo *UserRepository) RegisterUser(dto *dto.UserProfileRegisterDTO) error 
 		logrus.Errorf("error on create user profile %s", err)
 		tx.Rollback()
 		return err
+	}
+
+	// insert user interest
+	for _, code := range dto.InterestFor {
+		i := &model.UserInterestModel{
+			AccountID:    dto.AccountId,
+			InterestCode: code,
+		}
+		if err := tx.Create(i).Error; err != nil {
+			logrus.Errorf("error on create user interest %s", err)
+			tx.Rollback()
+			return err
+		}
 	}
 
 	// create/update user preference
@@ -116,17 +126,4 @@ func (repo *UserRepository) RegisterUser(dto *dto.UserProfileRegisterDTO) error 
 	}
 
 	return nil
-}
-
-func parseTime(dateTime string) *time.Time {
-	layout := "2006-01-02 15:04:05"
-
-	// Parse the date-time string into a time.Time object in the specified location
-	parsedTime, err := time.Parse(layout, dateTime)
-	if err != nil {
-		fmt.Println("Error parsing date-time with location:", err)
-		panic(err)
-	}
-
-	return &parsedTime
 }
