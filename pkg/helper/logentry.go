@@ -17,8 +17,7 @@ func LogEntry(ctx *fiber.Ctx, moduleName *string) *logrus.Entry {
 
 	var bodyData interface{}
 	if err := ctx.BodyParser(&bodyData); err != nil {
-		logrus.Warn("Failed to parse request body at MakeLogEntry: ", err)
-		bodyData = "Failed to parse body"
+		bodyData = nil
 	}
 
 	defaultLog["module"] = "http_request"

@@ -1,33 +1,26 @@
 package model
 
 import (
-	"matchlove-services/internal/dto"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type UserAccount struct {
-	Uuid              uuid.UUID `gorm:"primaryKey;type:varchar(36);"`
-	Username          string    `gorm:"unique;type:varchar(255)"`
-	Email             string    `gorm:"unique;type:varchar(255)"`
-	CreatedAt         time.Time `gorm:"autoCreateTime"`
-	Password          string    `gorm:"type:varchar(255)"`
-	RefreshToken      string
-	LastLogin         *time.Time
-	IsCompleteProfile uint8
+	Uuid              uuid.UUID  `gorm:"primaryKey;type:varchar(36);" json:"uuid"`
+	Username          string     `gorm:"unique;type:varchar(255)" json:"username"`
+	Email             string     `gorm:"unique;type:varchar(255)" json:"email"`
+	CreatedAt         time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	Password          string     `gorm:"type:varchar(255)" json:"-"`
+	RefreshToken      string     `json:"-"`
+	LastLogin         *time.Time `json:"last_login,omitempty"`
+	IsCompleteProfile uint8      `json:"-"`
+
+	UserPreference UserPreference `gorm:"unique;foreignKey:AccountUuid" json:"user_preference"`
+	UserProfile    UserProfile    `gorm:"unique;foreignKey:AccountUuid" json:"user_profile"`
+	UserInterest   []UserInterest `gorm:"foreignKey:AccountID" json:"user_interest"`
 }
 
 func (UserAccount) TableName() string {
 	return "user_account"
-}
-
-func (a UserAccount) ParseToDTO() *dto.AccountDTO {
-	account := &dto.AccountDTO{
-		Uuid:     a.Uuid.String(),
-		Username: a.Username,
-		Email:    a.Email,
-	}
-
-	return account
 }

@@ -13,7 +13,7 @@ import (
 
 func Open(dsn string) (*Database, error) {
 	database, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn),
+		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (d *Database) Migration() error {
 		&model.UserAccount{},
 		&model.UserProfile{},
 		&model.UserPreference{},
-		&model.UserInterestModel{},
+		&model.UserInterest{},
 		&model.MasterInterestModel{},
 		&model.MasterLookingFor{},
 	); err != nil {

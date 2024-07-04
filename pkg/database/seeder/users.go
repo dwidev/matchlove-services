@@ -157,7 +157,7 @@ func SeedUsers(db *gorm.DB) error {
 		}
 
 		for _, code := range interestCode {
-			interest := model.UserInterestModel{
+			interest := model.UserInterest{
 				AccountID:    account.Uuid.String(),
 				InterestCode: code,
 			}

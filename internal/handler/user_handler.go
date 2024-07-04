@@ -20,6 +20,7 @@ func NewUserHandler(validator *validator.Validate, service service.IUserService)
 
 type IUserHandler interface {
 	RegisterUser(c *fiber.Ctx) error
+	GetProfile(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -37,15 +38,25 @@ func (handler *UserHandler) RegisterUser(c *fiber.Ctx) error {
 		return response.FieldErrorResponse(c, listErr)
 	}
 
-	accountid, err := jwt.GetUuidFromAccessToken(c)
+	accountID, err := jwt.GetUuidFromAccessToken(c)
 	if err != nil {
 		return response.ErrorResponse(c, err)
 	}
 
-	regisDto.AccountId = accountid
+	regisDto.AccountId = accountID
 	if err := handler.service.OnRegisterUser(regisDto); err != nil {
 		return response.ErrorResponse(c, err)
 	}
 
 	return response.SuccessResponse(c, "Complete profile registered")
+}
+
+func (handler *UserHandler) GetProfile(c *fiber.Ctx) error {
+	accountID := c.Params("accountId")
+	account, err := handler.service.GetProfile(accountID)
+	if err != nil {
+		return response.ErrorResponse(c, err)
+	}
+
+	return response.SuccessResponse(c, account)
 }

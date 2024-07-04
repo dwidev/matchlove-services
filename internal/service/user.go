@@ -2,6 +2,7 @@ package service
 
 import (
 	"matchlove-services/internal/dto"
+	"matchlove-services/internal/model"
 	"matchlove-services/internal/repository"
 )
 
@@ -13,6 +14,7 @@ func NewUserService(r repository.IUserRepository) IUserService {
 
 type IUserService interface {
 	OnRegisterUser(req *dto.UserProfileRegisterDTO) error
+	GetProfile(accountID string) (*model.UserAccount, error)
 }
 
 type UserService struct {
@@ -26,4 +28,13 @@ func (u *UserService) OnRegisterUser(req *dto.UserProfileRegisterDTO) error {
 	}
 
 	return nil
+}
+
+func (u *UserService) GetProfile(accountID string) (*model.UserAccount, error) {
+	account, err := u.userRepository.GetProfile(accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	return account, nil
 }

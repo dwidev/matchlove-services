@@ -21,6 +21,7 @@ func NewUserRepository(db *gorm.DB, ar IAccountRepository) IUserRepository {
 
 type IUserRepository interface {
 	RegisterUser(dto *dto.UserProfileRegisterDTO) error
+	GetProfile(accountID string) (*model.UserAccount, error)
 }
 
 type UserRepository struct {
@@ -72,7 +73,7 @@ func (repo *UserRepository) RegisterUser(dto *dto.UserProfileRegisterDTO) error 
 
 	// insert user interest
 	for _, code := range dto.InterestFor {
-		i := &model.UserInterestModel{
+		i := &model.UserInterest{
 			AccountID:    dto.AccountId,
 			InterestCode: code,
 		}
@@ -126,4 +127,45 @@ func (repo *UserRepository) RegisterUser(dto *dto.UserProfileRegisterDTO) error 
 	}
 
 	return nil
+}
+
+func (repo *UserRepository) GetProfile(accountID string) (*model.UserAccount, error) {
+	user := new(model.UserAccount)
+	tx := repo.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Errorf("GetProfile : panic recover txn  %s", r)
+			tx.Rollback()
+		}
+	}()
+
+	err := tx.Preload("UserPreference").
+		Preload("UserProfile").
+		Preload("UserInterest").
+		Where("uuid = ?", accountID).
+		First(user).Error
+	if err != nil {
+		logrus.Errorf("GetProfile : error on get user profile %s %s", accountID, err)
+		return nil, err
+	}
+
+	for i, ui := range user.UserInterest {
+		interest := new(model.MasterInterestModel)
+		err := tx.Model(interest).Where("code = ?", ui.InterestCode).First(interest).Error
+		if err != nil {
+			tx.Rollback()
+			logrus.Errorf("GetProfile : error on get interest %s", err)
+			return nil, err
+		}
+
+		user.UserInterest[i].Name = interest.Name
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		logrus.Errorf("GetProfile : error on commit %s", err)
+		return nil, err
+	}
+
+	return user, nil
 }
