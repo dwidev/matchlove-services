@@ -12,7 +12,7 @@ import (
 
 func Logging(ctx *fiber.Ctx) error {
 	if err := ctx.Next(); err != nil {
-		helper.LogEntry(ctx, nil).Error(err)
+		helper.LogEntry(ctx, nil).Errorf("ERROR:%s", err)
 		return response.ErrorResponse(ctx, err)
 	}
 

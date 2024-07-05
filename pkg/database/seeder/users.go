@@ -40,6 +40,34 @@ func SeedUsers(db *gorm.DB) error {
 		account.Password = pass
 
 		profile := userProfileData[i]
+		if profile.Height == 0 {
+			profile.Height = 189
+		}
+		if profile.Weight == 0 {
+			profile.Weight = 74
+		}
+		if profile.LookingFor == "" {
+			profile.LookingFor = "LT_PARTNER"
+		}
+		if profile.Zodiac == "" {
+			profile.Zodiac = "Pisces"
+		}
+		if profile.BloodType == "" {
+			profile.BloodType = "AB"
+		}
+		if profile.Education == "" {
+			profile.Education = "High School"
+		}
+		if profile.Personality == "" {
+			profile.Personality = "EXTROVERT"
+		}
+		if profile.LoveLanguage == "" {
+			profile.LoveLanguage = "QUALITY_TIME"
+		}
+		if profile.City == "" {
+			profile.City = "BOGOR"
+		}
+
 		profile.Uuid = uuid.New()
 		profile.AccountUuid = account.Uuid.String()
 		r := rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
@@ -48,6 +76,11 @@ func SeedUsers(db *gorm.DB) error {
 		preference := userPreferenceData[i]
 		preference.Uuid = uuid.New()
 		preference.AccountUuid = account.Uuid.String()
+		if profile.Gender == "Male" {
+			preference.PreferredGender = "Female"
+		} else {
+			preference.PreferredGender = "Male"
+		}
 
 		interestRandom := helper.RandomArray(interest, 2)
 		var interestCode []string
@@ -55,6 +88,7 @@ func SeedUsers(db *gorm.DB) error {
 			interestCode = append(interestCode, i.Code)
 		}
 		preference.InterestFor = strings.Join(interestCode, "#")
+		preference.LookingFor = profile.LookingFor
 
 		if err := tx.Create(&account).Error; err != nil {
 			tx.Rollback()
@@ -70,6 +104,9 @@ func SeedUsers(db *gorm.DB) error {
 			interest := model.UserInterest{
 				AccountID:    account.Uuid.String(),
 				InterestCode: code,
+			}
+			if interest.InterestCode == "" {
+				interest.InterestCode = "GAMING"
 			}
 
 			if err := tx.Create(&interest).Error; err != nil {

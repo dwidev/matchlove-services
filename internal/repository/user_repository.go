@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -144,6 +145,10 @@ func (repo *UserRepository) GetProfile(accountID string) (*model.UserAccount, er
 		Preload("UserInterest").
 		Where("uuid = ?", accountID).
 		First(user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, response.RecordNotFound
+	}
+
 	if err != nil {
 		logrus.Errorf("GetProfile : error on get user profile %s %s", accountID, err)
 		return nil, err
@@ -152,13 +157,14 @@ func (repo *UserRepository) GetProfile(accountID string) (*model.UserAccount, er
 	for i, ui := range user.UserInterest {
 		interest := new(model.MasterInterestModel)
 		err := tx.Model(interest).Where("code = ?", ui.InterestCode).First(interest).Error
-		if err != nil {
-			tx.Rollback()
-			logrus.Errorf("GetProfile : error on get interest %s", err)
-			return nil, err
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err != nil {
+				tx.Rollback()
+				logrus.Errorf("GetProfile : error on get interest %s", err)
+				return nil, err
+			}
+			user.UserInterest[i].Name = interest.Name
 		}
-
-		user.UserInterest[i].Name = interest.Name
 	}
 
 	err = tx.Commit().Error

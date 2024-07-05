@@ -27,11 +27,12 @@ func (e AppError) Error() string {
 }
 
 var (
-	ErrUnauthorized  = &AppError{Code: fiber.StatusUnauthorized, Message: "Unauthorize"}
+	ErrUnauthorized  = &AppError{Code: fiber.StatusUnauthorized, Message: "Unauthorized"}
 	PassNoValid      = &AppError{Code: fiber.StatusBadRequest, Message: "This password is wrong"}
 	OldPasswordWrong = &AppError{Code: fiber.StatusBadRequest, Message: "Old password is wrong"}
 	AccountNotFound  = &AppError{Code: fiber.StatusBadRequest, Message: "No active account found with the given credentials"}
 	AlreadyExist     = &AppError{Code: fiber.StatusFound, Message: "Account is registered"}
+	RecordNotFound   = &AppError{Code: fiber.StatusNotFound, Message: "Data is not found"}
 )
 
 func BadRequest(message interface{}) *AppError {
@@ -47,12 +48,12 @@ func NewAppError(code int, message interface{}) *AppError {
 
 func CatchFiberError(err error) error {
 	var appErr *AppError
-	if errors.As(err, &appErr) {
-		return fiber.NewError(appErr.Code, appErr.Error())
+	if errors.As(err, &appErr) && appErr.Code != fiber.StatusInternalServerError {
+		return appErr
 	}
 
 	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if errors.As(err, &fiberErr) && fiberErr.Code != fiber.StatusInternalServerError {
 		return fiber.NewError(fiberErr.Code, fiberErr.Error())
 	}
 

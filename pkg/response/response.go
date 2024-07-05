@@ -29,7 +29,7 @@ func SuccessResponse(c *fiber.Ctx, data interface{}) error {
 
 func ErrorResponse(c *fiber.Ctx, err error) error {
 	var appErr *AppError
-	if errors.As(err, &appErr) {
+	if errors.As(err, &appErr) && appErr.Code != fiber.StatusInternalServerError {
 		response := &MessageResponse{
 			StatusCode: appErr.Code,
 			Message:    appErr.Message,
@@ -38,7 +38,7 @@ func ErrorResponse(c *fiber.Ctx, err error) error {
 	}
 
 	var fiberErr *fiber.Error
-	if errors.As(err, &fiberErr) {
+	if errors.As(err, &fiberErr) && fiberErr.Code != fiber.StatusInternalServerError {
 		response := &MessageResponse{
 			StatusCode: fiberErr.Code,
 			Message:    fiberErr.Message,

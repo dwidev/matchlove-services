@@ -554,7 +554,8 @@ var userProfileComplete = []*model.UserProfile{
 		LookingFor:        "FIGURING_IT_OUT",
 		LoveLanguage:      "RECEIVING_GIFTS",
 		City:              "BOGOR",
-		Longitude:         106.8045,
+		Longitude:         106.8061,
+		Latitude:          -6.5934,
 	},
 	{
 		Uuid:              uuid.New(),
@@ -664,6 +665,7 @@ var userProfileComplete = []*model.UserProfile{
 		LoveLanguage:      "RECEIVING_GIFTS",
 		City:              "BOGOR",
 		Longitude:         106.8045,
+		Latitude:          -6.5949,
 	},
 }
 
