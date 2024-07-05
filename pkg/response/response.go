@@ -1,6 +1,7 @@
 package response
 
 import (
+	"errors"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -26,29 +27,30 @@ func SuccessResponse(c *fiber.Ctx, data interface{}) error {
 	return c.JSON(response)
 }
 
-func NewErrorResponse(err error) *MessageResponse {
-	appErr, ok := err.(*AppError)
-	if ok {
-		return &MessageResponse{
+func ErrorResponse(c *fiber.Ctx, err error) error {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		response := &MessageResponse{
 			StatusCode: appErr.Code,
 			Message:    appErr.Message,
 		}
-	}
-
-	return &MessageResponse{
-		StatusCode: fiber.StatusInternalServerError,
-		Message:    "There was an error on the server, please try again later.",
-	}
-}
-
-func ErrorResponse(c *fiber.Ctx, err error) error {
-	if appErr, ok := err.(*AppError); ok {
-		response := NewErrorResponse(appErr)
 		return c.Status(appErr.Code).JSON(response)
 	}
 
-	response := NewErrorResponse(err)
-	return c.Status(fiber.StatusInternalServerError).JSON(response)
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		response := &MessageResponse{
+			StatusCode: fiberErr.Code,
+			Message:    fiberErr.Message,
+		}
+		return c.Status(fiberErr.Code).JSON(response)
+	}
+
+	response := &MessageResponse{
+		StatusCode: fiber.StatusInternalServerError,
+		Message:    "There was an error on the server, please try again later.",
+	}
+	return c.Status(response.StatusCode).JSON(response)
 }
 
 func FieldErrorResponse(c *fiber.Ctx, listErrField []string) error {

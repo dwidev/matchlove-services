@@ -16,9 +16,11 @@ type UserAccount struct {
 	LastLogin         *time.Time `json:"last_login,omitempty"`
 	IsCompleteProfile uint8      `json:"-"`
 
-	UserPreference UserPreference `gorm:"unique;foreignKey:AccountUuid" json:"user_preference"`
-	UserProfile    UserProfile    `gorm:"unique;foreignKey:AccountUuid" json:"user_profile"`
-	UserInterest   []UserInterest `gorm:"foreignKey:AccountID" json:"user_interest"`
+	UserPreference *UserPreference `gorm:"unique;foreignKey:AccountUuid" json:"user_preference"`
+	UserProfile    *UserProfile    `gorm:"unique;foreignKey:AccountUuid" json:"user_profile"`
+	UserInterest   []UserInterest  `gorm:"foreignKey:AccountID" json:"user_interest"`
+	UserLifeStyle  *UserLifeStyle  `gorm:"foreignKey:AccountID" json:"user_life_style"`
+	UserRoutine    *UserRoutine    `gorm:"foreignKey:AccountID" json:"user_routine"`
 }
 
 func (UserAccount) TableName() string {

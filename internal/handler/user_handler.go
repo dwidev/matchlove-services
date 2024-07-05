@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/sirupsen/logrus"
 	"matchlove-services/internal/dto"
 	"matchlove-services/internal/service"
 	"matchlove-services/pkg/helper"
@@ -40,7 +41,8 @@ func (handler *UserHandler) RegisterUser(c *fiber.Ctx) error {
 
 	accountID, err := jwt.GetUuidFromAccessToken(c)
 	if err != nil {
-		return response.ErrorResponse(c, err)
+		logrus.Errorf("UserHandler.RegisterUser get account id from access token error: %v", err)
+		return response.CatchFiberError(err)
 	}
 
 	regisDto.AccountId = accountID
@@ -52,10 +54,15 @@ func (handler *UserHandler) RegisterUser(c *fiber.Ctx) error {
 }
 
 func (handler *UserHandler) GetProfile(c *fiber.Ctx) error {
-	accountID := c.Params("accountId")
+	accountID, err := jwt.GetUuidFromAccessToken(c)
+	if err != nil {
+		logrus.Errorf("UserHandler.GetProfile get account id from access token error: %v", err)
+		return response.CatchFiberError(err)
+	}
+
 	account, err := handler.service.GetProfile(accountID)
 	if err != nil {
-		return response.ErrorResponse(c, err)
+		return response.CatchFiberError(err)
 	}
 
 	return response.SuccessResponse(c, account)

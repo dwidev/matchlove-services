@@ -7,5 +7,5 @@ func (r *Router) UserRoutes() {
 
 	userRoute := r.v1.Group("/users").Use(accessWare)
 	userRoute.Post("/register", r.Handler.UserHandler.RegisterUser)
-	userRoute.Get("/profile/:accountId", r.Handler.UserHandler.GetProfile)
+	userRoute.Get("me/profile", r.Handler.UserHandler.GetProfile)
 }

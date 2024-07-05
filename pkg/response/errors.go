@@ -1,6 +1,7 @@
 package response
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -45,8 +46,14 @@ func NewAppError(code int, message interface{}) *AppError {
 }
 
 func CatchFiberError(err error) error {
-	if appErr, ok := err.(*AppError); ok {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
 		return fiber.NewError(appErr.Code, appErr.Error())
+	}
+
+	var fiberErr *fiber.Error
+	if errors.As(err, &fiberErr) {
+		return fiber.NewError(fiberErr.Code, fiberErr.Error())
 	}
 
 	return fiber.NewError(fiber.StatusInternalServerError, err.Error())
