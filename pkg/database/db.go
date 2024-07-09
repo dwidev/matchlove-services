@@ -44,10 +44,15 @@ func (d *Database) Instance() *gorm.DB {
 
 func (d *Database) Migration() error {
 	if err := d.db.AutoMigrate(
+		// user
 		&model.UserAccount{},
 		&model.UserProfile{},
 		&model.UserPreference{},
 		&model.UserInterest{},
+		&model.UserLifeStyle{},
+		&model.UserRoutine{},
+
+		// master
 		&model.MasterInterestModel{},
 		&model.MasterLookingFor{},
 	); err != nil {

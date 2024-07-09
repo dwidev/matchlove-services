@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -11,6 +12,7 @@ import (
 	"matchlove-services/internal/model"
 	"matchlove-services/pkg/helper"
 	"matchlove-services/pkg/response"
+	"sync"
 )
 
 func NewUserRepository(db *gorm.DB, ar IAccountRepository) IUserRepository {
@@ -23,6 +25,10 @@ func NewUserRepository(db *gorm.DB, ar IAccountRepository) IUserRepository {
 type IUserRepository interface {
 	RegisterUser(dto *dto.UserProfileRegisterDTO) error
 	GetProfile(accountID string) (*model.UserAccount, error)
+	UpdateProfile(account *model.UserAccount) (*model.UserAccount, error)
+	UpdateInterest(accountID string, userInterest []*model.UserInterest) error
+	CreateOrUpdateMyLifeStyle(lifestyle *model.UserLifeStyle) error
+	CreateOrUpdateMyRoutine(routine *model.UserRoutine) error
 }
 
 type UserRepository struct {
@@ -154,17 +160,9 @@ func (repo *UserRepository) GetProfile(accountID string) (*model.UserAccount, er
 		return nil, err
 	}
 
-	for i, ui := range user.UserInterest {
-		interest := new(model.MasterInterestModel)
-		err := tx.Model(interest).Where("code = ?", ui.InterestCode).First(interest).Error
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			if err != nil {
-				tx.Rollback()
-				logrus.Errorf("GetProfile : error on get interest %s", err)
-				return nil, err
-			}
-			user.UserInterest[i].Name = interest.Name
-		}
+	err = repo.parseNameUserInterest(tx, user.UserInterest)
+	if err != nil {
+		return nil, err
 	}
 
 	err = tx.Commit().Error
@@ -174,4 +172,177 @@ func (repo *UserRepository) GetProfile(accountID string) (*model.UserAccount, er
 	}
 
 	return user, nil
+}
+
+func (repo *UserRepository) UpdateProfile(account *model.UserAccount) (acc *model.UserAccount, err error) {
+	tx := repo.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Errorf("Repo UpdateProfile : panic recover txn  %s", r)
+			tx.Rollback()
+		}
+	}()
+
+	// update user profile
+	if err = tx.Model(account.UserProfile).
+		Select("*").
+		Omit("uuid", "account_uuid", "first_name", "last_name", "longitude", "latitude", "age").
+		Save(account.UserProfile).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, 3)
+	wg.Add(3)
+
+	// update user interest
+	go func(accountID string, interests []*model.UserInterest) {
+		defer func() {
+			if r := recover(); r != nil {
+				logrus.Errorf("UserRepository.UpdateProfile  : panic recover go update interest  %s", r)
+				errChan <- errors.New(fmt.Sprintf("%v", r))
+			}
+			wg.Done()
+		}()
+
+		err := repo.UpdateInterest(accountID, interests)
+		if err != nil {
+			errChan <- err
+		}
+	}(account.Uuid.String(), account.UserInterest)
+
+	// update/create user lifestyle
+	go func(accountID string, lifestyle *model.UserLifeStyle) {
+		defer func() {
+			if r := recover(); r != nil {
+				logrus.Errorf("UserRepository.UpdateProfile  : panic recover go %s", r)
+				errChan <- errors.New(fmt.Sprintf("%v", r))
+			}
+			wg.Done()
+		}()
+
+		if err := repo.CreateOrUpdateMyLifeStyle(lifestyle); err != nil {
+			errChan <- err
+		}
+	}(account.Uuid.String(), account.UserLifeStyle)
+
+	// update/create user routine
+	go func(accountID string, routine *model.UserRoutine) {
+		defer func() {
+			if r := recover(); r != nil {
+				logrus.Errorf("UserRepository.UpdateProfile  : panic recover go %s", r)
+				errChan <- errors.New(fmt.Sprintf("%v", r))
+			}
+			wg.Done()
+		}()
+
+		if err := repo.CreateOrUpdateMyRoutine(routine); err != nil {
+			errChan <- err
+		}
+	}(account.Uuid.String(), account.UserRoutine)
+
+	wg.Wait()
+	select {
+	case err := <-errChan:
+		return nil, err
+	default:
+		close(errChan)
+		break
+	}
+
+	err = tx.Preload("UserPreference").
+		Preload("UserProfile").
+		Preload("UserInterest").
+		Preload("UserLifeStyle").
+		Preload("UserRoutine").
+		Where("uuid = ?", account.Uuid).
+		First(&acc).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, response.RecordNotFound
+	}
+
+	err = repo.parseNameUserInterest(tx, acc.UserInterest)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	return acc, nil
+}
+
+func (repo *UserRepository) parseNameUserInterest(tx *gorm.DB, userInterest []*model.UserInterest) (err error) {
+	for i, ui := range userInterest {
+		interest := new(model.MasterInterestModel)
+		err := tx.Model(interest).Where("code = ?", ui.InterestCode).First(interest).Error
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err != nil {
+				tx.Rollback()
+				logrus.Errorf("error on parse name interest %s", err)
+				return err
+			}
+
+			userInterest[i].Name = interest.Name
+		}
+	}
+
+	return nil
+}
+
+func (repo *UserRepository) UpdateInterest(accountID string, userInterest []*model.UserInterest) error {
+	//panic("ERROR UPDATE INTEREST")
+	var existingInterest []*model.UserInterest
+	if err := repo.db.Find(&existingInterest, "account_id = ?", accountID).Error; err != nil {
+		logrus.Errorf("(UserRepository.UpdateInterest) error on get existingInterest %s", err)
+		return err
+	}
+
+	existingCond := make(map[string]bool)
+	for _, existing := range existingInterest {
+		existingCond[existing.InterestCode] = true
+	}
+
+	for _, interest := range userInterest {
+		if _, exist := existingCond[interest.InterestCode]; exist {
+			delete(existingCond, interest.InterestCode)
+		} else {
+			if err := repo.db.Create(&interest).Error; err != nil {
+				logrus.Errorf("(UserRepository.UpdateInterest) error on create interest %s", err)
+				return err
+			}
+		}
+	}
+
+	for key := range existingCond {
+		if err := repo.db.Where("interest_code = ?", key).Delete(&model.UserInterest{}).Error; err != nil {
+			logrus.Errorf("(UserRepository.UpdateInterest) error on delete existing interest %s", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (repo *UserRepository) CreateOrUpdateMyLifeStyle(lifestyle *model.UserLifeStyle) error {
+	lifestyle.ID = uuid.New()
+	if err := repo.db.Save(lifestyle).Error; err != nil {
+		logrus.Errorf("(UserRepository.CreateOrUpdateLifeStyle) error on create or update lifestyle %s", err)
+		return err
+	}
+
+	return nil
+}
+
+func (repo *UserRepository) CreateOrUpdateMyRoutine(routine *model.UserRoutine) error {
+	routine.ID = uuid.New()
+	if err := repo.db.Save(routine).Error; err != nil {
+		logrus.Errorf("(UserRepository.CreateOrUpdateMyRoutine) error on create or update routine %s", err)
+		return err
+	}
+
+	return nil
 }

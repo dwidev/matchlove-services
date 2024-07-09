@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -12,17 +13,28 @@ func Validation(v *validator.Validate, s interface{}) []string {
 	results := make([]string, 0)
 
 	filterError := func(e validator.FieldError) {
-		field, _ := reflect.TypeOf(s).Elem().FieldByName(e.Field())
-		jsonTag := field.Tag.Get("json")
-		queryTag := field.Tag.Get("query")
-		validate := field.Tag.Get("validate")
+		fieldPath := strings.Split(e.StructNamespace(), ".")
+		typ := reflect.TypeOf(s).Elem()
 
-		var res string
-		if len(jsonTag) > 0 {
-			res = jsonTag
-		} else {
-			res = queryTag
+		var field reflect.StructField
+		var jsonPath []string
+
+		for _, part := range fieldPath {
+			var found bool
+			field, found = typ.FieldByName(part)
+			if !found {
+				continue
+			}
+
+			jsonPath = append(jsonPath, field.Tag.Get("json"))
+
+			typ = field.Type
+			if typ.Kind() == reflect.Ptr {
+				typ = typ.Elem()
+			}
 		}
+		res := strings.Join(jsonPath, " -> ")
+		validate := field.Tag.Get("validate")
 
 		switch e.Tag() {
 		case "required":
@@ -30,13 +42,13 @@ func Validation(v *validator.Validate, s interface{}) []string {
 			results = append(results, msg)
 			return
 		case "max":
-			max := getValueFromTag(validate, "max=")
-			msg := fmt.Sprintf("%s is max %v", res, max)
+			maxVal := getValueFromTag(validate, "max=")
+			msg := fmt.Sprintf("%s is max %v", res, maxVal)
 			results = append(results, msg)
 			return
 		case "min":
-			min := getValueFromTag(validate, "min=")
-			msg := fmt.Sprintf("%s is min %v", res, min)
+			minVal := getValueFromTag(validate, "min=")
+			msg := fmt.Sprintf("%s is min %v", res, minVal)
 			results = append(results, msg)
 			return
 		}
@@ -44,9 +56,10 @@ func Validation(v *validator.Validate, s interface{}) []string {
 	}
 
 	if err := v.Struct(s); err != nil {
-		if ve, ok := err.(validator.ValidationErrors); ok {
-			for _, e := range ve {
-				filterError(e)
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			for _, ev := range ve { // ev is error validation
+				filterError(ev)
 			}
 		}
 	}

@@ -18,7 +18,7 @@ type UserAccount struct {
 
 	UserPreference *UserPreference `gorm:"unique;foreignKey:AccountUuid" json:"user_preference"`
 	UserProfile    *UserProfile    `gorm:"unique;foreignKey:AccountUuid" json:"user_profile"`
-	UserInterest   []UserInterest  `gorm:"foreignKey:AccountID" json:"user_interest"`
+	UserInterest   []*UserInterest `gorm:"foreignKey:AccountID" json:"user_interest"`
 	UserLifeStyle  *UserLifeStyle  `gorm:"foreignKey:AccountID" json:"user_life_style"`
 	UserRoutine    *UserRoutine    `gorm:"foreignKey:AccountID" json:"user_routine"`
 }
