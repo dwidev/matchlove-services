@@ -18,14 +18,14 @@ import (
 
 // Injectors from wire.go:
 
-func IntializeHandler(db *gorm.DB) *router.Handler {
+func InitializeHandler(db *gorm.DB) *router.Handler {
 	validate := validator.New()
 	iAccountRepository := repository.NewAccountRepository(db)
 	iUserRepository := repository.NewUserRepository(db, iAccountRepository)
 	iUserService := service.NewUserService(iUserRepository)
 	iUserHandler := handler.NewUserHandler(validate, iUserService)
 	iAuthRepository := repository.NewAuthRepository(db)
-	iAuthService := service.NewAuthService(iAuthRepository, iAccountRepository)
+	iAuthService := service.NewAuthService(iAuthRepository, iAccountRepository, iUserRepository)
 	iAuthHandler := handler.NewAuthHandler(validate, iAuthService)
 	routerHandler := &router.Handler{
 		UserHandler: iUserHandler,

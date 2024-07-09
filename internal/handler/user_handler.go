@@ -20,7 +20,6 @@ func NewUserHandler(validator *validator.Validate, service service.IUserService)
 }
 
 type IUserHandler interface {
-	RegisterUser(c *fiber.Ctx) error
 	GetProfile(c *fiber.Ctx) error
 	UpdateProfile(c *fiber.Ctx) error
 }
@@ -28,30 +27,6 @@ type IUserHandler interface {
 type UserHandler struct {
 	service   service.IUserService
 	Validator *validator.Validate
-}
-
-func (handler *UserHandler) RegisterUser(c *fiber.Ctx) error {
-	regisDto := new(dto.UserProfileRegisterDTO)
-	if err := c.BodyParser(regisDto); err != nil {
-		return response.ErrorResponse(c, err)
-	}
-
-	if listErr := helper.Validation(handler.Validator, regisDto); len(listErr) != 0 {
-		return response.FieldErrorResponse(c, listErr)
-	}
-
-	accountID, err := jwt.GetUuidFromAccessToken(c)
-	if err != nil {
-		logrus.Errorf("UserHandler.RegisterUser get account id from access token error: %v", err)
-		return response.CatchFiberError(err)
-	}
-
-	regisDto.AccountId = accountID
-	if err := handler.service.OnRegisterUser(regisDto); err != nil {
-		return response.ErrorResponse(c, err)
-	}
-
-	return response.SuccessResponse(c, "Complete profile registered")
 }
 
 func (handler *UserHandler) GetProfile(c *fiber.Ctx) error {

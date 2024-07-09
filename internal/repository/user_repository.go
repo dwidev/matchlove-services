@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"log"
 	"matchlove-services/internal/dto"
 	"matchlove-services/internal/model"
@@ -97,25 +96,16 @@ func (repo *UserRepository) RegisterUser(dto *dto.UserProfileRegisterDTO) error 
 		AccountUuid:     dto.AccountId,
 		AgeMin:          dto.Age - 3,
 		AgeMax:          dto.Age + 3,
-		PreferredGender: dto.ToPreferedGender(),
+		PreferredGender: dto.ToPreferredGender(),
 		Distance:        float64(dto.Distance),
 		LookingFor:      dto.LookingFor,
 		InterestFor:     dto.JoinInterest(),
 	}
-
-	tx.Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "account_uuid"}},
-		DoUpdates: clause.AssignmentColumns([]string{
-			"preferred_gender",
-			"age_min",
-			"age_max",
-			"interest_for",
-			"looking_for",
-			"distance",
-			"latitude",
-			"longitude",
-		}),
-	}).Create(&userPreference)
+	if err := tx.Create(&userPreference).Error; err != nil {
+		logrus.Errorf("error on create user interest %s", err)
+		tx.Rollback()
+		return err
+	}
 
 	// update complete profile at user account
 	account := new(model.UserAccount)

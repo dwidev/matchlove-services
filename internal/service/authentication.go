@@ -15,16 +15,19 @@ import (
 func NewAuthService(
 	r repository.IAuthRepository,
 	ar repository.IAccountRepository,
+	ur repository.IUserRepository,
 ) IAuthService {
 	return &AuthService{
 		AuthRepository:    r,
 		AccountRepository: ar,
+		UserRepository:    ur,
 	}
 }
 
 type IAuthService interface {
 	OnLoginWithEmail(email string) (*dto.SuccessLoginResponseDTO, error)
 	OnLoginWithEmailPassword(req *dto.LoginPassRequestDTO) (*dto.SuccessLoginResponseDTO, error)
+	OnRegisterUser(req *dto.UserProfileRegisterDTO) error
 	OnLogout(userId string) error
 	RefreshToken(userID string) (*dto.SuccessLoginResponseDTO, error)
 	ChangePassword(userID string, dto *dto.ChangePassswordDTO) (*response.MessageResponse, error)
@@ -33,6 +36,7 @@ type IAuthService interface {
 type AuthService struct {
 	AuthRepository    repository.IAuthRepository
 	AccountRepository repository.IAccountRepository
+	UserRepository    repository.IUserRepository
 }
 
 func (s *AuthService) OnLoginWithEmail(email string) (*dto.SuccessLoginResponseDTO, error) {
@@ -101,6 +105,15 @@ func (s *AuthService) OnLoginWithEmailPassword(req *dto.LoginPassRequestDTO) (*d
 	}
 
 	return result, nil
+}
+
+func (s *AuthService) OnRegisterUser(req *dto.UserProfileRegisterDTO) error {
+	err := s.UserRepository.RegisterUser(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *AuthService) OnLogout(userId string) error {

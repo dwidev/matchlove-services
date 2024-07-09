@@ -22,7 +22,7 @@ func (u UserProfileRegisterDTO) JoinInterest() string {
 	return res
 }
 
-func (u UserProfileRegisterDTO) ToPreferedGender() string {
+func (u UserProfileRegisterDTO) ToPreferredGender() string {
 	if u.Gender == "Male" {
 		return "Female"
 	} else {

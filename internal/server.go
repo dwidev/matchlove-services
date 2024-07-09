@@ -83,7 +83,7 @@ func (s Server) setupLogger() {
 }
 
 func (s Server) setupRoutes() {
-	handler := injection.IntializeHandler(s.db)
+	handler := injection.InitializeHandler(s.db)
 	route := &router.Router{
 		Engine:  s.engine,
 		Config:  s.config,

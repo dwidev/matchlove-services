@@ -14,22 +14,12 @@ func NewUserService(r repository.IUserRepository) IUserService {
 }
 
 type IUserService interface {
-	OnRegisterUser(req *dto.UserProfileRegisterDTO) error
 	GetProfile(accountID string) (*model.UserAccount, error)
 	UpdateProfile(accountID string, requestDTO *dto.UpdateProfileRequestDTO) (*model.UserAccount, error)
 }
 
 type UserService struct {
 	userRepository repository.IUserRepository
-}
-
-func (u *UserService) OnRegisterUser(req *dto.UserProfileRegisterDTO) error {
-	err := u.userRepository.RegisterUser(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (u *UserService) GetProfile(accountID string) (*model.UserAccount, error) {

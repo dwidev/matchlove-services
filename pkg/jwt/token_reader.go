@@ -1,28 +1,27 @@
 package jwt
 
 import (
-	"errors"
-	"matchlove-services/internal/constant"
-	"matchlove-services/pkg/middleware"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"matchlove-services/internal/constant"
+	"matchlove-services/pkg/middleware"
+	"matchlove-services/pkg/response"
 )
 
 func getUuidFromToken(c *fiber.Ctx, contextKey string) (string, error) {
 	user, ok := c.Locals(contextKey).(*jwt.Token)
 	if !ok {
-		return "", errors.New("invalid jwt token at contextKey")
+		return "", response.CredentialNoProvide
 	}
 
 	claim, ok := user.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", errors.New("invalid token claims")
+		return "", response.TokenInvalidOrExpired
 	}
 
 	uuid, ok := claim[constant.UuidClaimKey].(string)
 	if !ok {
-		return "", errors.New("invalid uuid claims")
+		return "", response.TokenInvalidOrExpired
 	}
 
 	return uuid, nil

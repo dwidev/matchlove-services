@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/sirupsen/logrus"
 	"matchlove-services/internal/dto"
 	"matchlove-services/internal/service"
 	"matchlove-services/pkg/helper"
@@ -19,6 +20,7 @@ func NewAuthHandler(validate *validator.Validate, service service.IAuthService) 
 }
 
 type IAuthHandler interface {
+	RegisterUser(c *fiber.Ctx) error
 	LoginWithEmail(c *fiber.Ctx) error
 	LoginWithEmailPassword(c *fiber.Ctx) error
 	Logout(c *fiber.Ctx) error
@@ -67,6 +69,30 @@ func (handler *authHandler) LoginWithEmailPassword(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(res)
+}
+
+func (handler *authHandler) RegisterUser(c *fiber.Ctx) error {
+	regisDto := new(dto.UserProfileRegisterDTO)
+	if err := c.BodyParser(regisDto); err != nil {
+		return response.ErrorResponse(c, err)
+	}
+
+	if listErr := helper.Validation(handler.Validator, regisDto); len(listErr) != 0 {
+		return response.FieldErrorResponse(c, listErr)
+	}
+
+	accountID, err := jwt.GetUuidFromAccessToken(c)
+	if err != nil {
+		logrus.Errorf("authHandler.RegisterUser get account id from access token error: %v", err)
+		return response.CatchFiberError(err)
+	}
+
+	regisDto.AccountId = accountID
+	if err := handler.service.OnRegisterUser(regisDto); err != nil {
+		return response.ErrorResponse(c, err)
+	}
+
+	return response.SuccessResponse(c, "Complete profile registered")
 }
 
 func (handler *authHandler) Logout(c *fiber.Ctx) error {

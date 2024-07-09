@@ -8,7 +8,7 @@ import (
 
 type UserProfile struct {
 	Uuid        uuid.UUID `gorm:"primaryKey;type:varchar(36);" json:"uuid"`
-	AccountUuid string    `gorm:"type:varchar(36);" json:"account_uuid"`
+	AccountUuid string    `gorm:"type:varchar(36);uniqueIndex" json:"account_uuid"`
 
 	ProfilePictureURL string    `gorm:"size:255" json:"profile_picture_url"`
 	FirstName         string    `gorm:"type:varchar(50)" json:"first_name"`
