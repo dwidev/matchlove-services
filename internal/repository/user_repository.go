@@ -23,11 +23,12 @@ func NewUserRepository(db *gorm.DB, ar IAccountRepository) IUserRepository {
 
 type IUserRepository interface {
 	RegisterUser(dto *dto.UserProfileRegisterDTO) error
-	GetProfile(accountID string) (*model.UserAccount, error)
+	GetMyProfile(accountID string) (*model.UserAccount, error)
 	UpdateProfile(account *model.UserAccount) (*model.UserAccount, error)
 	UpdateInterest(accountID string, userInterest []*model.UserInterest) error
 	CreateOrUpdateMyLifeStyle(lifestyle *model.UserLifeStyle) error
 	CreateOrUpdateMyRoutine(routine *model.UserRoutine) error
+	GetUserProfile(accountID string) (*model.UserAccount, error)
 }
 
 type UserRepository struct {
@@ -126,7 +127,7 @@ func (repo *UserRepository) RegisterUser(dto *dto.UserProfileRegisterDTO) error 
 	return nil
 }
 
-func (repo *UserRepository) GetProfile(accountID string) (*model.UserAccount, error) {
+func (repo *UserRepository) GetMyProfile(accountID string) (*model.UserAccount, error) {
 	user := new(model.UserAccount)
 	tx := repo.db.Begin()
 	defer func() {
@@ -335,4 +336,45 @@ func (repo *UserRepository) CreateOrUpdateMyRoutine(routine *model.UserRoutine) 
 	}
 
 	return nil
+}
+
+func (repo *UserRepository) GetUserProfile(accountID string) (*model.UserAccount, error) {
+	user := new(model.UserAccount)
+	tx := repo.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Errorf("GetUserProfile : panic recover txn  %s", r)
+			tx.Rollback()
+		}
+	}()
+
+	err := tx.
+		Omit("email", "created_at", "password", "refresh_token", "last_login").
+		Preload("UserPreference").
+		Preload("UserProfile").
+		Preload("UserInterest").
+		Where("uuid = ?", accountID).
+		First(user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, response.RecordNotFound
+	}
+
+	if err != nil {
+		logrus.Errorf("GetUserProfile : error on get user profile %s %s", accountID, err)
+		return nil, err
+	}
+
+	err = repo.parseNameUserInterest(tx, user.UserInterest)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		logrus.Errorf("GetUserProfile : error on commit %s", err)
+		tx.Rollback()
+		return nil, err
+	}
+
+	return user, nil
 }

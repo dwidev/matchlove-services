@@ -9,8 +9,8 @@ import (
 type UserAccount struct {
 	Uuid              uuid.UUID  `gorm:"primaryKey;type:varchar(36);" json:"uuid"`
 	Username          string     `gorm:"unique;type:varchar(255)" json:"username"`
-	Email             string     `gorm:"unique;type:varchar(255)" json:"email"`
-	CreatedAt         time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	Email             string     `gorm:"unique;type:varchar(255)" json:"email,omitempty"`
+	CreatedAt         *time.Time `gorm:"autoCreateTime" json:"created_at,omitempty"`
 	Password          string     `gorm:"type:varchar(255)" json:"-"`
 	RefreshToken      string     `json:"-"`
 	LastLogin         *time.Time `json:"last_login,omitempty"`

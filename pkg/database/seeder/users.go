@@ -34,7 +34,9 @@ func SeedUsers(db *gorm.DB) error {
 			return err
 		}
 
+		now := time.Now()
 		account.Uuid = uuid.New()
+		account.CreatedAt = &now
 		account.Username = fmt.Sprintf("%s%d", account.Username, i)
 		account.Email = fmt.Sprintf("userdummy%d@gmail.com", i)
 		account.Password = pass

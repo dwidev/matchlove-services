@@ -20,8 +20,9 @@ func NewUserHandler(validator *validator.Validate, service service.IUserService)
 }
 
 type IUserHandler interface {
-	GetProfile(c *fiber.Ctx) error
+	GetMyProfile(c *fiber.Ctx) error
 	UpdateProfile(c *fiber.Ctx) error
+	GetUserProfile(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -29,14 +30,14 @@ type UserHandler struct {
 	Validator *validator.Validate
 }
 
-func (handler *UserHandler) GetProfile(c *fiber.Ctx) error {
+func (handler *UserHandler) GetMyProfile(c *fiber.Ctx) error {
 	accountID, err := jwt.GetUuidFromAccessToken(c)
 	if err != nil {
 		logrus.Errorf("UserHandler.GetProfile get account id from access token error: %v", err)
 		return response.CatchFiberError(err)
 	}
 
-	account, err := handler.service.GetProfile(accountID)
+	account, err := handler.service.GetMyProfile(accountID)
 	if err != nil {
 		return response.CatchFiberError(err)
 	}
@@ -61,6 +62,16 @@ func (handler *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	}
 
 	account, err := handler.service.UpdateProfile(accountID, request)
+	if err != nil {
+		return response.CatchFiberError(err)
+	}
+
+	return response.SuccessResponse(c, account)
+}
+
+func (handler *UserHandler) GetUserProfile(c *fiber.Ctx) error {
+	accountID := c.Params("accountId")
+	account, err := handler.service.GetUserProfile(accountID)
 	if err != nil {
 		return response.CatchFiberError(err)
 	}

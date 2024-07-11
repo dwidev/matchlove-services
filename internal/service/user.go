@@ -14,16 +14,17 @@ func NewUserService(r repository.IUserRepository) IUserService {
 }
 
 type IUserService interface {
-	GetProfile(accountID string) (*model.UserAccount, error)
+	GetMyProfile(accountID string) (*model.UserAccount, error)
 	UpdateProfile(accountID string, requestDTO *dto.UpdateProfileRequestDTO) (*model.UserAccount, error)
+	GetUserProfile(accountID string) (*model.UserAccount, error)
 }
 
 type UserService struct {
 	userRepository repository.IUserRepository
 }
 
-func (u *UserService) GetProfile(accountID string) (*model.UserAccount, error) {
-	account, err := u.userRepository.GetProfile(accountID)
+func (u *UserService) GetMyProfile(accountID string) (*model.UserAccount, error) {
+	account, err := u.userRepository.GetMyProfile(accountID)
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +43,15 @@ func (u *UserService) UpdateProfile(accountID string, requestDTO *dto.UpdateProf
 	account.UserRoutine = requestDTO.UserRoutine.ParseToModel(accountID)
 
 	account, err := u.userRepository.UpdateProfile(account)
+	if err != nil {
+		return nil, err
+	}
+
+	return account, nil
+}
+
+func (u *UserService) GetUserProfile(accountID string) (*model.UserAccount, error) {
+	account, err := u.userRepository.GetUserProfile(accountID)
 	if err != nil {
 		return nil, err
 	}
