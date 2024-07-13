@@ -12,10 +12,10 @@ import (
 )
 
 type IAuthRepository interface {
-	CreateNewAccount(account *model.UserAccount) (acc *model.UserAccount, err error)
 	LoginWithEmail(email string) (acc *model.UserAccount, err error)
 	LoginWithPassword(req *dto.LoginPassRequestDTO) (acc *model.UserAccount, err error)
 	Logout(accountId string) error
+	ValidateRefreshToken(refreshToken string) (res bool, err error)
 }
 
 func NewAuthRepository(db *gorm.DB) IAuthRepository {
@@ -26,14 +26,6 @@ func NewAuthRepository(db *gorm.DB) IAuthRepository {
 
 type AuthRepository struct {
 	db *gorm.DB
-}
-
-func (repo *AuthRepository) CreateNewAccount(account *model.UserAccount) (*model.UserAccount, error) {
-	if err := repo.db.Create(&account).Error; err != nil {
-		return nil, err
-	}
-
-	return account, nil
 }
 
 func (repo *AuthRepository) LoginWithEmail(email string) (*model.UserAccount, error) {
@@ -96,4 +88,15 @@ func (repo *AuthRepository) UpdateAccountRefreshToken(accountId string, newRefre
 	}
 
 	return nil
+}
+
+func (repo *AuthRepository) ValidateRefreshToken(refreshToken string) (res bool, err error) {
+	var count int64
+	err = repo.db.Model(&model.LoginActivity{}).Where("refresh_token = ?", refreshToken).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	res = count > 0
+	return res, nil
 }

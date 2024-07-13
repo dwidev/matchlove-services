@@ -14,5 +14,6 @@ type SuccessLoginResponseDTO struct {
 }
 
 type LoginWithEmailDto struct {
-	Email string `json:"email" validate:"required,email"`
+	Email       string `json:"email" validate:"required,email"`
+	RecordLogin *RecordLoginActivityDto
 }

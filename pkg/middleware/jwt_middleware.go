@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/sirupsen/logrus"
+	"matchlove-services/internal/constant"
 	"matchlove-services/pkg/config"
 	"matchlove-services/pkg/response"
 	"strings"
@@ -11,20 +12,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-const (
-	ContextKeyAccess  = "JWT_ACCESS"
-	ContextKeyRefresh = "JWT_REFRESH"
-)
-
 // JwtAccessProtected function for middleware with access token jwt
 func JwtAccessProtected(env *config.Schema) fiber.Handler {
 	c := jwtware.Config{
 		SigningKey: jwtware.SigningKey{
 			Key: []byte(env.AccessSecretKey),
 		},
-		ContextKey: ContextKeyAccess,
+		ContextKey: constant.ContextKeyAccess,
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			return jwtError(c, err, ContextKeyAccess)
+			return jwtError(c, err, constant.ContextKeyAccess)
 		},
 	}
 
@@ -37,9 +33,9 @@ func JwtRefreshProtected(env *config.Schema) fiber.Handler {
 		SigningKey: jwtware.SigningKey{
 			Key: []byte(env.RefreshSecretKey),
 		},
-		ContextKey: ContextKeyRefresh,
+		ContextKey: constant.ContextKeyRefresh,
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			return jwtError(c, err, ContextKeyRefresh)
+			return jwtError(c, err, constant.ContextKeyRefresh)
 		},
 	}
 
@@ -48,7 +44,7 @@ func JwtRefreshProtected(env *config.Schema) fiber.Handler {
 
 // func for error handling jwt
 func jwtError(c *fiber.Ctx, err error, types string) error {
-	if strings.Contains(err.Error(), "missing or malformed JWT") {
+	if strings.Contains(err.Error(), "missing") || strings.Contains(err.Error(), "malformed") {
 		logrus.Errorf("error on jwt error handler with type %s, error : %s", types, err.Error())
 		err := response.NewAppError(fiber.ErrBadRequest.Code, err.Error())
 		return response.ErrorResponse(c, err)

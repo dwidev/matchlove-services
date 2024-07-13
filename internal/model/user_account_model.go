@@ -12,9 +12,9 @@ type UserAccount struct {
 	Email             string     `gorm:"unique;type:varchar(255)" json:"email,omitempty"`
 	CreatedAt         *time.Time `gorm:"autoCreateTime" json:"created_at,omitempty"`
 	Password          string     `gorm:"type:varchar(255)" json:"-"`
-	RefreshToken      string     `json:"-"`
-	LastLogin         *time.Time `json:"last_login,omitempty"`
 	IsCompleteProfile uint8      `json:"-"`
+
+	LoginActivity []*LoginActivity `gorm:"foreignKey:AccountID" json:"-"`
 
 	UserPreference *UserPreference `gorm:"unique;foreignKey:AccountUuid" json:"user_preference"`
 	UserProfile    *UserProfile    `gorm:"unique;foreignKey:AccountUuid" json:"user_profile"`

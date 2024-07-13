@@ -52,6 +52,10 @@ func (d *Database) Migration() error {
 		&model.UserLifeStyle{},
 		&model.UserRoutine{},
 
+		// login & device info
+		&model.LoginActivity{},
+		&model.DevicesInfo{},
+
 		// master
 		&model.MasterInterestModel{},
 		&model.MasterLookingFor{},

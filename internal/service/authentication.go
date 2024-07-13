@@ -25,11 +25,11 @@ func NewAuthService(
 }
 
 type IAuthService interface {
-	OnLoginWithEmail(email string) (*dto.SuccessLoginResponseDTO, error)
+	OnLoginWithEmail(req *dto.LoginWithEmailDto) (*dto.SuccessLoginResponseDTO, error)
 	OnLoginWithEmailPassword(req *dto.LoginPassRequestDTO) (*dto.SuccessLoginResponseDTO, error)
 	OnRegisterUser(req *dto.UserProfileRegisterDTO) error
 	OnLogout(userId string) error
-	RefreshToken(userID string) (*dto.SuccessLoginResponseDTO, error)
+	RefreshToken(userID string, token string) (*dto.SuccessLoginResponseDTO, error)
 	ChangePassword(userID string, dto *dto.ChangePassswordDTO) (*response.MessageResponse, error)
 }
 
@@ -39,9 +39,9 @@ type AuthService struct {
 	UserRepository    repository.IUserRepository
 }
 
-func (s *AuthService) OnLoginWithEmail(email string) (*dto.SuccessLoginResponseDTO, error) {
+func (s *AuthService) OnLoginWithEmail(req *dto.LoginWithEmailDto) (*dto.SuccessLoginResponseDTO, error) {
 	newAccount := false
-	account, err := s.AuthRepository.LoginWithEmail(email)
+	account, err := s.AuthRepository.LoginWithEmail(req.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -51,10 +51,10 @@ func (s *AuthService) OnLoginWithEmail(email string) (*dto.SuccessLoginResponseD
 		// for login with email if account not found set username with email
 		accountRequest := &model.UserAccount{
 			Uuid:     uuid.New(),
-			Email:    email,
-			Username: email,
+			Email:    req.Email,
+			Username: req.Email,
 		}
-		account, err = s.AuthRepository.CreateNewAccount(accountRequest)
+		account, err = s.AccountRepository.CreateNewAccount(accountRequest)
 		newAccount = true
 		if err != nil {
 			return nil, err
@@ -66,7 +66,8 @@ func (s *AuthService) OnLoginWithEmail(email string) (*dto.SuccessLoginResponseD
 		return nil, err
 	}
 
-	err = s.AccountRepository.UpdateAccountRefreshToken(account.Uuid.String(), token.RefreshToken)
+	req.RecordLogin.LoginActivity.AccountID = account.Uuid.String()
+	err = s.AccountRepository.RecordLoginActivity(req.RecordLogin, *token)
 	if err != nil {
 		return nil, err
 	}
@@ -93,10 +94,10 @@ func (s *AuthService) OnLoginWithEmailPassword(req *dto.LoginPassRequestDTO) (*d
 		return nil, err
 	}
 
-	err = s.AccountRepository.UpdateAccountRefreshToken(account.Uuid.String(), token.RefreshToken)
-	if err != nil {
-		return nil, err
-	}
+	//err = s.AccountRepository.RecordLoginActivity(account.Uuid.String(), *token)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	result := &dto.SuccessLoginResponseDTO{
 		StatusCode:   fiber.StatusOK,
@@ -125,29 +126,36 @@ func (s *AuthService) OnLogout(userId string) error {
 	return nil
 }
 
-func (s *AuthService) RefreshToken(userID string) (*dto.SuccessLoginResponseDTO, error) {
+func (s *AuthService) RefreshToken(userID string, token string) (*dto.SuccessLoginResponseDTO, error) {
+	validToken, err := s.AuthRepository.ValidateRefreshToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	if !validToken {
+		return nil, fiber.ErrForbidden
+	}
+
 	account, err := s.AccountRepository.GetAccountByID(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := jwt.GenerateToken(account)
-
+	newToken, err := jwt.GenerateToken(account)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.AccountRepository.UpdateAccountRefreshToken(userID, token.RefreshToken)
-	if err != nil {
-		return nil, err
-	}
+	//err = s.AccountRepository.RecordLoginActivity(userID, *newToken)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	result := &dto.SuccessLoginResponseDTO{
 		StatusCode:   fiber.StatusOK,
-		AccessToken:  token.AccessToken,
-		RefreshToken: token.RefreshToken,
+		AccessToken:  newToken.AccessToken,
+		RefreshToken: newToken.RefreshToken,
 	}
-
 	return result, nil
 }
 

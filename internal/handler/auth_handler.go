@@ -3,9 +3,11 @@ package handler
 import (
 	"github.com/sirupsen/logrus"
 	"matchlove-services/internal/dto"
+	"matchlove-services/internal/model"
 	"matchlove-services/internal/service"
 	"matchlove-services/pkg/helper"
 	"matchlove-services/pkg/jwt"
+	"matchlove-services/pkg/middleware"
 	"matchlove-services/pkg/response"
 
 	"github.com/go-playground/validator/v10"
@@ -34,10 +36,7 @@ type authHandler struct {
 }
 
 func (handler *authHandler) LoginWithEmail(c *fiber.Ctx) error {
-	type Dto struct {
-		Email string `json:"email" validate:"required,email"`
-	}
-	request := new(Dto)
+	request := new(dto.LoginWithEmailDto)
 	if err := c.BodyParser(request); err != nil {
 		return response.CatchFiberError(err)
 	}
@@ -46,7 +45,12 @@ func (handler *authHandler) LoginWithEmail(c *fiber.Ctx) error {
 		return response.FieldErrorResponse(c, listErr)
 	}
 
-	res, err := handler.service.OnLoginWithEmail(request.Email)
+	deviceInfo := middleware.GetDeviceInfo(c)
+	request.RecordLogin = &dto.RecordLoginActivityDto{
+		LoginActivity: model.NewLoginActivity(),
+		DevicesInfo:   deviceInfo,
+	}
+	res, err := handler.service.OnLoginWithEmail(request)
 	if err != nil {
 		return response.CatchFiberError(err)
 	}
@@ -113,12 +117,13 @@ func (handler *authHandler) Logout(c *fiber.Ctx) error {
 }
 
 func (handler *authHandler) RefreshToken(c *fiber.Ctx) error {
-	uuid, err := jwt.GetUuidFromRefreshToken(c)
+	accountID, err := jwt.GetUuidFromRefreshToken(c)
 	if err != nil {
 		return response.CatchFiberError(err)
 	}
 
-	res, err := handler.service.RefreshToken(uuid)
+	refreshToken := jwt.GetRefreshToken(c)
+	res, err := handler.service.RefreshToken(accountID, refreshToken)
 	if err != nil {
 		return response.CatchFiberError(err)
 	}
