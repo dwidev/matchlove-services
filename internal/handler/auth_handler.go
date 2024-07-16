@@ -105,7 +105,8 @@ func (handler *authHandler) Logout(c *fiber.Ctx) error {
 		return response.CatchFiberError(err)
 	}
 
-	err = handler.service.OnLogout(userId)
+	info := middleware.GetDeviceInfo(c)
+	err = handler.service.OnLogout(userId, info)
 	if err != nil {
 		return response.CatchFiberError(err)
 	}

@@ -28,7 +28,7 @@ type IAuthService interface {
 	OnLoginWithEmail(req *dto.LoginWithEmailDto) (*dto.SuccessLoginResponseDTO, error)
 	OnLoginWithEmailPassword(req *dto.LoginPassRequestDTO) (*dto.SuccessLoginResponseDTO, error)
 	OnRegisterUser(req *dto.UserProfileRegisterDTO) error
-	OnLogout(userId string) error
+	OnLogout(accountID string, info *model.DevicesInfo) error
 	RefreshToken(userID string, token string) (*dto.SuccessLoginResponseDTO, error)
 	ChangePassword(userID string, dto *dto.ChangePassswordDTO) (*response.MessageResponse, error)
 }
@@ -67,7 +67,7 @@ func (s *AuthService) OnLoginWithEmail(req *dto.LoginWithEmailDto) (*dto.Success
 	}
 
 	req.RecordLogin.LoginActivity.AccountID = account.Uuid.String()
-	err = s.AccountRepository.RecordLoginActivity(req.RecordLogin, *token)
+	err = s.AuthRepository.RecordLoginActivity(req.RecordLogin, *token)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +117,8 @@ func (s *AuthService) OnRegisterUser(req *dto.UserProfileRegisterDTO) error {
 	return nil
 }
 
-func (s *AuthService) OnLogout(userId string) error {
-	err := s.AuthRepository.Logout(userId)
+func (s *AuthService) OnLogout(accountID string, info *model.DevicesInfo) error {
+	err := s.AuthRepository.Logout(accountID, info)
 	if err != nil {
 		return err
 	}
@@ -146,10 +146,10 @@ func (s *AuthService) RefreshToken(userID string, token string) (*dto.SuccessLog
 		return nil, err
 	}
 
-	//err = s.AccountRepository.RecordLoginActivity(userID, *newToken)
-	//if err != nil {
-	//	return nil, err
-	//}
+	err = s.AuthRepository.UpdateRefreshToken(token, newToken.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
 
 	result := &dto.SuccessLoginResponseDTO{
 		StatusCode:   fiber.StatusOK,

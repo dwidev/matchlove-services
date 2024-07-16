@@ -1,8 +1,9 @@
 package dto
 
 type LoginPassRequestDTO struct {
-	Email    string `json:"email" validate:"required"`
-	Password string `json:"password" validate:"required"`
+	Email       string `json:"email" validate:"required"`
+	Password    string `json:"password" validate:"required"`
+	RecordLogin *RecordLoginActivityDto
 }
 
 type SuccessLoginResponseDTO struct {
