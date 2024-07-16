@@ -7,8 +7,9 @@ import (
 )
 
 type Handler struct {
-	UserHandler handler.IUserHandler
-	AuthHandler handler.IAuthHandler
+	UserHandler        handler.IUserHandler
+	AuthHandler        handler.IAuthHandler
+	MatchmakingHandler handler.IMatchmakingHandler
 }
 
 type Router struct {
@@ -26,4 +27,5 @@ func (r *Router) Build() {
 
 	r.AuthenticationRoutes()
 	r.UserRoutes()
+	r.MatchMakingRoutes()
 }

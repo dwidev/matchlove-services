@@ -27,9 +27,13 @@ func InitializeHandler(db *gorm.DB) *router.Handler {
 	iAuthRepository := repository.NewAuthRepository(db)
 	iAuthService := service.NewAuthService(iAuthRepository, iAccountRepository, iUserRepository)
 	iAuthHandler := handler.NewAuthHandler(validate, iAuthService)
+	iMatchmakingRepository := repository.NewMatchmakingRepository(db)
+	iMatchmakingService := service.NewMatchMakingService(iMatchmakingRepository)
+	iMatchmakingHandler := handler.NewMatchMakingHandler(validate, iMatchmakingService)
 	routerHandler := &router.Handler{
-		UserHandler: iUserHandler,
-		AuthHandler: iAuthHandler,
+		UserHandler:        iUserHandler,
+		AuthHandler:        iAuthHandler,
+		MatchmakingHandler: iMatchmakingHandler,
 	}
 	return routerHandler
 }
@@ -37,9 +41,9 @@ func InitializeHandler(db *gorm.DB) *router.Handler {
 // wire.go:
 
 var (
-	reportRepositorySet = wire.NewSet(repository.NewAccountRepository, repository.NewUserRepository, repository.NewAuthRepository)
+	reportRepositorySet = wire.NewSet(repository.NewAccountRepository, repository.NewUserRepository, repository.NewAuthRepository, repository.NewMatchmakingRepository)
 
-	serviceSet = wire.NewSet(service.NewUserService, service.NewAuthService)
+	serviceSet = wire.NewSet(service.NewUserService, service.NewAuthService, service.NewMatchMakingService)
 
-	handlerSet = wire.NewSet(handler.NewAuthHandler, handler.NewUserHandler)
+	handlerSet = wire.NewSet(handler.NewAuthHandler, handler.NewUserHandler, handler.NewMatchMakingHandler)
 )

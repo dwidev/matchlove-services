@@ -19,16 +19,19 @@ var (
 		repository.NewAccountRepository,
 		repository.NewUserRepository,
 		repository.NewAuthRepository,
+		repository.NewMatchmakingRepository,
 	)
 
 	serviceSet = wire.NewSet(
 		service.NewUserService,
 		service.NewAuthService,
+		service.NewMatchMakingService,
 	)
 
 	handlerSet = wire.NewSet(
 		handler.NewAuthHandler,
 		handler.NewUserHandler,
+		handler.NewMatchMakingHandler,
 	)
 )
 
