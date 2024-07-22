@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"matchlove-services/internal/dto"
 	"matchlove-services/internal/service"
 	"matchlove-services/pkg/jwt"
 	"matchlove-services/pkg/response"
@@ -30,9 +32,22 @@ func (handler *MatchmakingHandler) GetMatchSuggestion(c *fiber.Ctx) error {
 		return response.CatchFiberError(err)
 	}
 
-	result, err := handler.service.GetMatchSuggestions(accountID)
+	request := new(dto.MatchSuggestionsRequestDto)
+	if err = c.QueryParser(request); err != nil {
+		return response.CatchFiberError(err)
+	}
+
+	request.AccountID = accountID
+	result, err := handler.service.GetMatchSuggestions(request)
 	if err != nil {
 		return response.CatchFiberError(err)
 	}
-	return response.SuccessResponse(c, result)
+
+	dummy := make([]string, 0)
+	for _, account := range result {
+		dummy = append(dummy, fmt.Sprintf("%s-%s-%s", account.UserProfile.FirstName, account.Username, account.Uuid))
+	}
+
+	fmt.Println(len(result))
+	return response.SuccessResponse(c, dummy)
 }

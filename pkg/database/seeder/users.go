@@ -16,6 +16,10 @@ func SeedUsers(db *gorm.DB) error {
 	userProfileData = append(userProfileData, userProfileComplete...)
 	userPreferenceData = append(userPreferenceData, userPreferenceData...)
 
+	db.Exec("DELETE FROM devices_info")
+	db.Exec("DELETE FROM login_activities")
+	db.Exec("DELETE FROM user_routine")
+	db.Exec("DELETE FROM user_lifestyle")
 	db.Exec("DELETE FROM user_interest")
 	db.Exec("DELETE FROM user_preference")
 	db.Exec("DELETE FROM user_profile")
@@ -77,6 +81,7 @@ func SeedUsers(db *gorm.DB) error {
 
 		preference := userPreferenceData[i]
 		preference.Uuid = uuid.New()
+		preference.AgeMin = uint8(profile.Age)
 		preference.AccountUuid = account.Uuid.String()
 		if profile.Gender == "Male" {
 			preference.PreferredGender = "Female"
@@ -84,9 +89,17 @@ func SeedUsers(db *gorm.DB) error {
 			preference.PreferredGender = "Male"
 		}
 
-		interestRandom := helper.RandomArray(interest, 2)
+		interestRandom := helper.RandomArray(interest, 3)
 		var interestCode []string
+
+	loop:
 		for _, i := range interestRandom {
+			for _, ic := range interestCode {
+				if i.Code == ic {
+					continue loop
+				}
+			}
+
 			interestCode = append(interestCode, i.Code)
 		}
 		preference.InterestFor = strings.Join(interestCode, "#")

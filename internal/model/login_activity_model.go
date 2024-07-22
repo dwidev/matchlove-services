@@ -30,12 +30,12 @@ func (l *LoginActivity) SetLoginAt() {
 	l.LoginAt = &now
 }
 
-func (l *LoginActivity) BeforeSave() error {
-	l.SetLoginAt()
-	return nil
-}
-
-func (l *LoginActivity) BeforeUpdate() error {
-	l.SetLoginAt()
-	return nil
-}
+//func (l *LoginActivity) BeforeSave() error {
+//	l.SetLoginAt()
+//	return nil
+//}
+//
+//func (l *LoginActivity) BeforeUpdate() error {
+//	l.SetLoginAt()
+//	return nil
+//}

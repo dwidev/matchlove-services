@@ -16,7 +16,7 @@ type UserAccount struct {
 
 	LoginActivity []*LoginActivity `gorm:"foreignKey:AccountID" json:"-"`
 
-	UserPreference *UserPreference `gorm:"unique;foreignKey:AccountUuid" json:"user_preference"`
+	UserPreference *UserPreference `gorm:"unique;foreignKey:AccountUuid" json:"user_preference,omitempty"`
 	UserProfile    *UserProfile    `gorm:"unique;foreignKey:AccountUuid" json:"user_profile"`
 	UserInterest   []*UserInterest `gorm:"foreignKey:AccountID" json:"user_interest"`
 	UserLifeStyle  *UserLifeStyle  `gorm:"foreignKey:AccountID" json:"user_life_style"`
