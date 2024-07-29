@@ -24,9 +24,10 @@ type matchMakingEngineConfig struct {
 	profile    *model.UserProfile
 	dto        *dto.MatchSuggestionsRequestDto
 
-	disableDistance bool
-	disableGender   bool
-	disableAge      bool
+	disableDistance   bool
+	disableAge        bool
+	disableLookingFor bool
+	disableInterest   bool
 
 	existUser map[string]bool
 }
@@ -39,24 +40,28 @@ func (m *matchMakingEngineConfig) Offset() int {
 	return (m.dto.Page - 1) * m.dto.PerPage
 }
 
-//func (m *matchMakingEngineConfig) upOffset() {
-//	m.offset += 1
-//}
-
 func (m *matchMakingEngineConfig) ExpandDistance() {
-	//m.upOffset()
 	m.preference.Distance = m.preference.Distance + 10
 }
 
 func (m *matchMakingEngineConfig) ExpandAgeMinAndMax() {
-	//m.upOffset()
 	m.preference.AgeMin = uint8(m.profile.Age - 5)
 	m.preference.AgeMax = m.preference.AgeMax + 10
 }
 
 func (m *matchMakingEngineConfig) NotIncludeLookingFor() {
-	//m.upOffset()
-	m.preference.LookingFor = ""
+	m.disableLookingFor = true
+}
+
+func (m *matchMakingEngineConfig) NotIncludeInterest() {
+	m.disableInterest = true
+}
+
+func (m *matchMakingEngineConfig) DisablePreference() {
+	m.disableAge = true
+	m.disableDistance = true
+	m.disableLookingFor = true
+	m.disableInterest = true
 }
 
 func (m *matchMakingEngineConfig) SameData() ([]string, bool) {

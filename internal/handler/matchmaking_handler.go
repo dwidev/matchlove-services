@@ -5,7 +5,9 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"matchlove-services/internal/dto"
+	"matchlove-services/internal/model"
 	"matchlove-services/internal/service"
+	"matchlove-services/pkg/helper"
 	"matchlove-services/pkg/jwt"
 	"matchlove-services/pkg/response"
 )
@@ -37,6 +39,10 @@ func (handler *MatchmakingHandler) GetMatchSuggestion(c *fiber.Ctx) error {
 		return response.CatchFiberError(err)
 	}
 
+	if listErr := helper.Validation(handler.validator, request); len(listErr) > 0 {
+		return response.FieldErrorResponse(c, listErr)
+	}
+
 	request.AccountID = accountID
 	result, err := handler.service.GetMatchSuggestions(request)
 	if err != nil {
@@ -44,10 +50,16 @@ func (handler *MatchmakingHandler) GetMatchSuggestion(c *fiber.Ctx) error {
 	}
 
 	dummy := make([]string, 0)
-	for _, account := range result {
+	for _, account := range result.Data.([]*model.UserAccount) {
 		dummy = append(dummy, fmt.Sprintf("%s-%s-%s", account.UserProfile.FirstName, account.Username, account.Uuid))
 	}
 
-	fmt.Println(len(result))
-	return response.SuccessResponse(c, dummy)
+	dummyResult := dto.PaginationResultDTO{
+		CurrentPage: result.CurrentPage,
+		TotalPage:   result.TotalPage,
+		TotalData:   result.TotalData,
+		Data:        dummy,
+	}
+
+	return response.SuccessResponse(c, dummyResult)
 }

@@ -15,11 +15,23 @@ func NewMatchmakingRepository(db *gorm.DB) IMatchmakingRepository {
 }
 
 type IMatchmakingRepository interface {
-	GetMatchSuggestions(dto *dto.MatchSuggestionsRequestDto) ([]*model.UserAccount, error)
+	GetMatchSuggestions(dto *dto.MatchSuggestionsRequestDto) (*dto.PaginationResultDTO, error)
 }
 
 type MatchmakingRepository struct {
 	db *gorm.DB
+}
+
+func (repo *MatchmakingRepository) CalculateTotalUser(accountID string, preferenceGender string) (*int64, error) {
+	var count int64
+	query := repo.db.Model(&model.UserProfile{}).Where("account_uuid != ?", accountID)
+	query.Where("gender = ?", preferenceGender).Count(&count)
+
+	if err := query.Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	return &count, nil
 }
 
 func (repo *MatchmakingRepository) matchMakingEngine(cfg *matchMakingEngineConfig) ([]*model.UserAccount, error) {
@@ -41,7 +53,8 @@ func (repo *MatchmakingRepository) matchMakingEngine(cfg *matchMakingEngineConfi
 		Joins("UserLifeStyle").
 		Joins("UserRoutine").
 		Where("user_account.uuid != ?", accountID)
-	if preference.Distance != 0 {
+
+	if !cfg.disableDistance && preference.Distance != 0 {
 		query.Where(fmt.Sprintf("%s <= ?", distance), preference.Distance)
 	}
 
@@ -49,21 +62,25 @@ func (repo *MatchmakingRepository) matchMakingEngine(cfg *matchMakingEngineConfi
 		query.Where("UserProfile.gender = ?", preference.PreferredGender)
 	}
 
-	if preference.AgeMin != 0 || preference.AgeMax != 0 {
-		query.Where("UserProfile.age >= ?", preference.AgeMin).
-			Where("UserProfile.age <= ?", preference.AgeMax)
-	} else {
-		query.Where("UserProfile.age >= ?", profile.Age).
-			Where("UserProfile.age <= ?", profile.Age+10)
+	if !cfg.disableAge {
+		if preference.AgeMin != 0 || preference.AgeMax != 0 {
+			query.Where("UserProfile.age >= ?", preference.AgeMin).
+				Where("UserProfile.age <= ?", preference.AgeMax)
+		} else {
+			query.Where("UserProfile.age >= ?", profile.Age).
+				Where("UserProfile.age <= ?", profile.Age+10)
+		}
 	}
 
-	if preference.LookingFor != "" {
+	if !cfg.disableLookingFor && preference.LookingFor != "" {
 		query.Where("UserProfile.looking_for = ?", preference.LookingFor)
 	}
 
-	interest := strings.Split(preference.InterestFor, "#")
-	if len(interest) != 0 {
-		query.Preload("UserInterest", "interest_code IN (?)", interest)
+	if !cfg.disableInterest {
+		interest := strings.Split(preference.InterestFor, "#")
+		if len(interest) != 0 {
+			query.Preload("UserInterest", "interest_code IN (?)", interest)
+		}
 	}
 
 	sameData, ok := cfgEngine.SameData()
@@ -88,17 +105,23 @@ func (repo *MatchmakingRepository) matchMakingEngine(cfg *matchMakingEngineConfi
 	return result, nil
 }
 
-func (repo *MatchmakingRepository) GetMatchSuggestions(dto *dto.MatchSuggestionsRequestDto) ([]*model.UserAccount, error) {
-	perPage := dto.PerPage
+func (repo *MatchmakingRepository) GetMatchSuggestions(request *dto.MatchSuggestionsRequestDto) (*dto.PaginationResultDTO, error) {
+	perPage := request.PerPage
+
 	profile := new(model.UserProfile)
-	if err := repo.db.Where("account_uuid = ?", dto.AccountID).First(profile).Error; err != nil {
+	if err := repo.db.Where("account_uuid = ?", request.AccountID).First(profile).Error; err != nil {
 		// TODO(): create get list match without preference user
 		return nil, err
 	}
 
 	preference := new(model.UserPreference)
-	if err := repo.db.Where("account_uuid = ?", dto.AccountID).First(preference).Error; err != nil {
+	if err := repo.db.Where("account_uuid = ?", request.AccountID).First(preference).Error; err != nil {
 		// TODO(): create get list match without preference user
+		return nil, err
+	}
+
+	total, err := repo.CalculateTotalUser(request.AccountID, preference.PreferredGender)
+	if err != nil {
 		return nil, err
 	}
 
@@ -106,7 +129,7 @@ func (repo *MatchmakingRepository) GetMatchSuggestions(dto *dto.MatchSuggestions
 	engineConfig := &matchMakingEngineConfig{
 		profile:    profile,
 		preference: preference,
-		dto:        dto,
+		dto:        request,
 	}
 	dataByDistance, err := repo.matchMakingEngine(engineConfig)
 	if err != nil {
@@ -147,5 +170,33 @@ func (repo *MatchmakingRepository) GetMatchSuggestions(dto *dto.MatchSuggestions
 		result = append(result, notIncludeLookingFor...)
 	}
 
-	return result, nil
+	if len(result) < perPage {
+		engineConfig.dto.PerPage = perPage - len(result)
+		engineConfig.NotIncludeInterest()
+		notIncludeLookingFor, err := repo.matchMakingEngine(engineConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, notIncludeLookingFor...)
+	}
+
+	if len(result) < perPage {
+		engineConfig.dto.PerPage = perPage - len(result)
+		engineConfig.DisablePreference()
+		notIncludeLookingFor, err := repo.matchMakingEngine(engineConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, notIncludeLookingFor...)
+	}
+
+	totalPage := (int(*total) + perPage - 1) / perPage
+	return &dto.PaginationResultDTO{
+		CurrentPage: request.Page,
+		TotalData:   int(*total),
+		TotalPage:   totalPage,
+		Data:        result,
+	}, nil
 }

@@ -2,7 +2,6 @@ package service
 
 import (
 	"matchlove-services/internal/dto"
-	"matchlove-services/internal/model"
 	"matchlove-services/internal/repository"
 )
 
@@ -13,14 +12,14 @@ func NewMatchMakingService(mmr repository.IMatchmakingRepository) IMatchmakingSe
 }
 
 type IMatchmakingService interface {
-	GetMatchSuggestions(request *dto.MatchSuggestionsRequestDto) ([]*model.UserAccount, error)
+	GetMatchSuggestions(request *dto.MatchSuggestionsRequestDto) (*dto.PaginationResultDTO, error)
 }
 
 type MatchMakingService struct {
 	MatchmakingRepository repository.IMatchmakingRepository
 }
 
-func (m *MatchMakingService) GetMatchSuggestions(request *dto.MatchSuggestionsRequestDto) ([]*model.UserAccount, error) {
+func (m *MatchMakingService) GetMatchSuggestions(request *dto.MatchSuggestionsRequestDto) (*dto.PaginationResultDTO, error) {
 	res, err := m.MatchmakingRepository.GetMatchSuggestions(request)
 	//res = helper.RandomArray(res, len(res))
 
