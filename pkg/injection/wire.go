@@ -10,6 +10,7 @@ import (
 	"matchlove-services/internal/repository"
 	"matchlove-services/internal/router"
 	"matchlove-services/internal/service"
+	"matchlove-services/pkg/cache"
 
 	"github.com/google/wire"
 )
@@ -35,7 +36,7 @@ var (
 	)
 )
 
-func InitializeHandler(db *gorm.DB) *router.Handler {
+func InitializeHandler(db *gorm.DB, cache cache.Cache) *router.Handler {
 	wire.Build(
 		validator.New,
 		reportRepositorySet,

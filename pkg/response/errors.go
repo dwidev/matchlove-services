@@ -27,13 +27,14 @@ func (e AppError) Error() string {
 }
 
 var (
-	CredentialNoProvide   = &AppError{Code: fiber.StatusUnauthorized, Message: "Authentication credentials were not provided."}
-	TokenInvalidOrExpired = &AppError{Code: fiber.StatusUnauthorized, Message: "Given token not valid for any token type. (Token is invalid or expired)"}
-	PassNoValid           = &AppError{Code: fiber.StatusBadRequest, Message: "This password is wrong"}
-	OldPasswordWrong      = &AppError{Code: fiber.StatusBadRequest, Message: "Old password is wrong"}
-	AccountNotFound       = &AppError{Code: fiber.StatusBadRequest, Message: "No active account found with the given credentials"}
-	AlreadyExist          = &AppError{Code: fiber.StatusFound, Message: "Account is registered"}
-	RecordNotFound        = &AppError{Code: fiber.StatusNotFound, Message: "Data is not found"}
+	CredentialNoLongerValid = &AppError{Code: fiber.StatusUnauthorized, Message: "Authentication credentials were not valid."}
+	CredentialNoProvide     = &AppError{Code: fiber.StatusUnauthorized, Message: "Authentication credentials were not provided."}
+	TokenInvalidOrExpired   = &AppError{Code: fiber.StatusUnauthorized, Message: "Given token not valid for any token type. (Token is invalid or expired)"}
+	PassNoValid             = &AppError{Code: fiber.StatusBadRequest, Message: "This password is wrong"}
+	OldPasswordWrong        = &AppError{Code: fiber.StatusBadRequest, Message: "Old password is wrong"}
+	AccountNotFound         = &AppError{Code: fiber.StatusBadRequest, Message: "No active account found with the given credentials"}
+	AlreadyExist            = &AppError{Code: fiber.StatusFound, Message: "Account is registered"}
+	RecordNotFound          = &AppError{Code: fiber.StatusNotFound, Message: "Data is not found"}
 )
 
 func BadRequest(message interface{}) *AppError {

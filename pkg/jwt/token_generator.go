@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	accessExpTime  = time.Minute * 10 // its mean 10 minute
-	refreshExpTime = time.Minute * 30 // its mean 30 minute
+	AccessExpTime  = time.Minute * 10 // its mean 10 minute
+	RefreshExpTime = time.Minute * 30 // its mean 30 minute
 )
 
 func GenerateToken(account *model.UserAccount) (*TokenPayload, error) {
@@ -43,7 +43,7 @@ func GenerateToken(account *model.UserAccount) (*TokenPayload, error) {
 func generateAccessToken(account *model.UserAccount) (string, error) {
 	c := config.Get()
 	jwtClaim := getTokenClaim(account)
-	jwtClaim[constant.ExpClaimKey] = time.Now().Add(accessExpTime).Unix()
+	jwtClaim[constant.ExpClaimKey] = time.Now().Add(AccessExpTime).Unix()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaim)
 	return token.SignedString([]byte(c.AccessSecretKey))
@@ -52,7 +52,7 @@ func generateAccessToken(account *model.UserAccount) (string, error) {
 func generateRefreshToken(account *model.UserAccount) (string, error) {
 	c := config.Get()
 	jwtClaim := getTokenClaim(account)
-	jwtClaim[constant.ExpClaimKey] = time.Now().Add(refreshExpTime).Unix()
+	jwtClaim[constant.ExpClaimKey] = time.Now().Add(RefreshExpTime).Unix()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaim)
 	return token.SignedString([]byte(c.RefreshSecretKey))

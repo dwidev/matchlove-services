@@ -14,17 +14,18 @@ import (
 	"matchlove-services/internal/repository"
 	"matchlove-services/internal/router"
 	"matchlove-services/internal/service"
+	"matchlove-services/pkg/cache"
 )
 
 // Injectors from wire.go:
 
-func InitializeHandler(db *gorm.DB) *router.Handler {
+func InitializeHandler(db *gorm.DB, cache2 cache.Cache) *router.Handler {
 	validate := validator.New()
 	iAccountRepository := repository.NewAccountRepository(db)
 	iUserRepository := repository.NewUserRepository(db, iAccountRepository)
 	iUserService := service.NewUserService(iUserRepository)
 	iUserHandler := handler.NewUserHandler(validate, iUserService)
-	iAuthRepository := repository.NewAuthRepository(db)
+	iAuthRepository := repository.NewAuthRepository(db, cache2)
 	iAuthService := service.NewAuthService(iAuthRepository, iAccountRepository, iUserRepository)
 	iAuthHandler := handler.NewAuthHandler(validate, iAuthService)
 	iMatchmakingRepository := repository.NewMatchmakingRepository(db)

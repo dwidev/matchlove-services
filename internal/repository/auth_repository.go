@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"matchlove-services/internal/dto"
 	"matchlove-services/internal/model"
+	"matchlove-services/pkg/cache"
 	"matchlove-services/pkg/helper"
 	"matchlove-services/pkg/jwt"
 	"matchlove-services/pkg/response"
@@ -22,14 +24,16 @@ type IAuthRepository interface {
 	RecordLoginActivity(recordLogin *dto.RecordLoginActivityDto, token jwt.TokenPayload) (err error)
 }
 
-func NewAuthRepository(db *gorm.DB) IAuthRepository {
+func NewAuthRepository(db *gorm.DB, cache cache.Cache) IAuthRepository {
 	return &AuthRepository{
-		db: db,
+		db:    db,
+		cache: cache,
 	}
 }
 
 type AuthRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	cache cache.Cache
 }
 
 func (repo *AuthRepository) LoginWithEmail(email string) (*model.UserAccount, error) {
@@ -77,6 +81,14 @@ func (repo *AuthRepository) Logout(accountId string, info *model.DevicesInfo) er
 		"last_login":    time.Now(),
 	}
 	if err := repo.db.Model(loginActivity).Where("id = ?", loginActivity.ID).Updates(updates).Error; err != nil {
+		return err
+	}
+
+	// delete token at cache
+	ctx := context.Background()
+	key := cache.AccessTokenKeyCache(accountId, info.Imei)
+	err := repo.cache.Delete(ctx, key)
+	if err != nil {
 		return err
 	}
 
@@ -161,6 +173,14 @@ func (repo *AuthRepository) RecordLoginActivity(recordLogin *dto.RecordLoginActi
 		if err = repo.db.Create(deviceInfo).Error; err != nil {
 			return err
 		}
+	}
+
+	// set access token to cache
+	ctx := context.Background()
+	key := cache.AccessTokenKeyCache(AccountID, imei)
+	err = repo.cache.SetString(ctx, key, token.AccessToken, jwt.AccessExpTime)
+	if err != nil {
+		return err
 	}
 
 	return nil

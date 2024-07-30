@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"matchlove-services/internal/router"
+	"matchlove-services/pkg/cache"
 	"matchlove-services/pkg/config"
 	"matchlove-services/pkg/injection"
 	"matchlove-services/pkg/middleware"
@@ -20,13 +21,15 @@ type Server struct {
 	engine *fiber.App
 	db     *gorm.DB
 	config *config.Schema
+	cache  cache.Cache
 }
 
-func New(db *gorm.DB) *Server {
+func New(db *gorm.DB, c cache.Cache) *Server {
 	return &Server{
 		engine: fiber.New(),
 		config: config.Get(),
 		db:     db,
+		cache:  c,
 	}
 }
 
@@ -83,11 +86,12 @@ func (s Server) setupLogger() {
 }
 
 func (s Server) setupRoutes() {
-	handler := injection.InitializeHandler(s.db)
+	handler := injection.InitializeHandler(s.db, s.cache)
 	route := &router.Router{
 		Engine:  s.engine,
 		Config:  s.config,
 		Handler: handler,
+		Cache:   s.cache,
 	}
 
 	route.Build()
