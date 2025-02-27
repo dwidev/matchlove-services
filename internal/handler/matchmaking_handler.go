@@ -2,14 +2,15 @@ package handler
 
 import (
 	"fmt"
-	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
 	"matchlove-services/internal/dto"
 	"matchlove-services/internal/model"
 	"matchlove-services/internal/service"
 	"matchlove-services/pkg/helper"
 	"matchlove-services/pkg/jwt"
 	"matchlove-services/pkg/response"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
 )
 
 func NewMatchMakingHandler(validator *validator.Validate, service service.IMatchmakingService) IMatchmakingHandler {
@@ -21,6 +22,7 @@ func NewMatchMakingHandler(validator *validator.Validate, service service.IMatch
 
 type IMatchmakingHandler interface {
 	GetMatchSuggestion(c *fiber.Ctx) error
+	Like(c *fiber.Ctx) error
 }
 
 type MatchmakingHandler struct {
@@ -51,15 +53,47 @@ func (handler *MatchmakingHandler) GetMatchSuggestion(c *fiber.Ctx) error {
 
 	dummy := make([]string, 0)
 	for _, account := range result.Data.([]*model.UserAccount) {
-		dummy = append(dummy, fmt.Sprintf("%s-%s-%s", account.UserProfile.FirstName, account.Username, account.Uuid))
+		dummy = append(dummy, fmt.Sprintf("%s#%s#%s", account.UserProfile.FirstName, account.Username, account.UserProfile.Uuid))
 	}
 
-	dummyResult := dto.PaginationResultDTO{
+	res := dto.PaginationResultDTO{
 		CurrentPage: result.CurrentPage,
 		TotalPage:   result.TotalPage,
 		TotalData:   result.TotalData,
-		Data:        dummy,
+		Data:        result.Data,
 	}
 
-	return response.SuccessResponse(c, dummyResult)
+	return response.SuccessResponse(c, res)
+}
+
+func (handler *MatchmakingHandler) Like(c *fiber.Ctx) error {
+	request := new(dto.LikeRequestDTO)
+	if err := c.BodyParser(request); err != nil {
+		return response.CatchFiberError(err)
+	}
+
+	if listErr := helper.Validation(handler.validator, request); len(listErr) > 0 {
+		return response.FieldErrorResponse(c, listErr)
+	}
+
+	//uuid, err := jwt.GetUuidFromAccessToken(c)
+	//if err != nil {
+	//	return response.CatchFiberError(err)
+	//}
+	//
+	//if uuid == request.SecondUserAccountID {
+	//	return response.CatchFiberError(response.CannotLikeYourself)
+	//}
+
+	result, err := handler.service.Like(request)
+
+	if err != nil {
+		return response.CatchFiberError(err)
+	}
+
+	if result == dto.MATCHES {
+		return response.SuccessResponse(c, "yeayyy it's a match")
+	}
+
+	return response.SuccessResponse(c, "user liked")
 }

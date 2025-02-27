@@ -5,21 +5,28 @@ import (
 	"gorm.io/gorm"
 	"matchlove-services/internal/dto"
 	"matchlove-services/internal/model"
+	"matchlove-services/pkg/cache"
 	"strings"
+	"time"
 )
 
-func NewMatchmakingRepository(db *gorm.DB) IMatchmakingRepository {
+func NewMatchmakingRepository(db *gorm.DB, cache cache.Cache) IMatchmakingRepository {
 	return &MatchmakingRepository{
-		db: db,
+		db:    db,
+		cache: cache,
 	}
 }
 
 type IMatchmakingRepository interface {
 	GetMatchSuggestions(dto *dto.MatchSuggestionsRequestDto) (*dto.PaginationResultDTO, error)
+	CreateLike(dto *dto.LikeRequestDTO) (liked bool, err error)
+	CheckForMatches(dto *dto.LikeRequestDTO) (matches bool, err error)
+	CreateMatches(dto *dto.LikeRequestDTO) (bool, error)
 }
 
 type MatchmakingRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	cache cache.Cache
 }
 
 func (repo *MatchmakingRepository) CalculateTotalUser(accountID string, preferenceGender string) (*int64, error) {
@@ -199,4 +206,82 @@ func (repo *MatchmakingRepository) GetMatchSuggestions(request *dto.MatchSuggest
 		TotalPage:   totalPage,
 		Data:        result,
 	}, nil
+}
+
+func (repo *MatchmakingRepository) CreateLike(dto *dto.LikeRequestDTO) (liked bool, err error) {
+	var count int64
+	err = repo.db.Model(model.Likes{}).Where("liker_id = ?", dto.FirstUserAccountID).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	if count > 0 {
+		return true, nil
+	}
+
+	likerID := dto.FirstUserAccountID
+	likedID := dto.SecondUserAccountID
+
+	likesModel := model.Likes{
+		LikerID: likerID,
+		LikedID: likedID,
+		TimeField: model.TimeField{
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+	}
+
+	if err := repo.db.Create(&likesModel).Error; err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (repo *MatchmakingRepository) CheckForMatches(dto *dto.LikeRequestDTO) (matches bool, err error) {
+	var count int64
+	err = repo.db.Model(model.Likes{}).Where("liked_id = ?", dto.FirstUserAccountID).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	if count > 0 {
+		return true, nil
+	}
+
+	return false, err
+}
+
+func (repo *MatchmakingRepository) CreateMatches(dto *dto.LikeRequestDTO) (bool, error) {
+	var count int64
+	err := repo.db.Model(model.Matches{}).
+		Where("first_user_id = ? OR second_user_id = ?", dto.FirstUserAccountID, dto.FirstUserAccountID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	matchModel := model.Matches{
+		FirstUserID:       dto.FirstUserAccountID,
+		SecondUserID:      dto.SecondUserAccountID,
+		Score:             0,
+		MatchAtMobileTime: time.Now(),
+		TimeField: model.TimeField{
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+	}
+
+	if count > 0 {
+		if err := repo.db.Where("first_user_id = ?", dto.FirstUserAccountID).Updates(&matchModel).Error; err != nil {
+			return false, err
+		}
+		return true, nil
+	} else {
+		if err := repo.db.Create(&matchModel).Error; err != nil {
+			return false, err
+		}
+		return true, nil
+	}
 }

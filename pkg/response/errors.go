@@ -35,11 +35,8 @@ var (
 	AccountNotFound         = &AppError{Code: fiber.StatusBadRequest, Message: "No active account found with the given credentials"}
 	AlreadyExist            = &AppError{Code: fiber.StatusFound, Message: "Account is registered"}
 	RecordNotFound          = &AppError{Code: fiber.StatusNotFound, Message: "Data is not found"}
+	CannotLikeYourself      = &AppError{Code: fiber.StatusBadRequest, Message: "You can't like yourself"}
 )
-
-func BadRequest(message interface{}) *AppError {
-	return NewAppError(fiber.StatusBadRequest, message)
-}
 
 func NewAppError(code int, message interface{}) *AppError {
 	return &AppError{

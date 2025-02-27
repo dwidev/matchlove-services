@@ -13,6 +13,7 @@ func NewMatchMakingService(mmr repository.IMatchmakingRepository) IMatchmakingSe
 
 type IMatchmakingService interface {
 	GetMatchSuggestions(request *dto.MatchSuggestionsRequestDto) (*dto.PaginationResultDTO, error)
+	Like(request *dto.LikeRequestDTO) (dto.LikeResponseType, error)
 }
 
 type MatchMakingService struct {
@@ -28,4 +29,34 @@ func (m *MatchMakingService) GetMatchSuggestions(request *dto.MatchSuggestionsRe
 	}
 
 	return res, nil
+}
+
+func (m *MatchMakingService) Like(request *dto.LikeRequestDTO) (dto.LikeResponseType, error) {
+	// check second user already liked or no
+	// if yes, it's a match
+	// if no create like
+
+	// create like
+	_, err := m.MatchmakingRepository.CreateLike(request)
+	if err != nil {
+		return dto.ERROR, err
+	}
+
+	/// check match
+	var matches, errMatch = m.MatchmakingRepository.CheckForMatches(request)
+	if errMatch != nil {
+		return dto.ERROR, err
+	}
+
+	/// create matches if match
+	if matches == true {
+		_, err := m.MatchmakingRepository.CreateMatches(request)
+		if err != nil {
+			return dto.ERROR, err
+		}
+
+		return dto.MATCHES, nil
+	}
+
+	return dto.LIKED, nil
 }

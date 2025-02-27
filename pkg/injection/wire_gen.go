@@ -28,7 +28,7 @@ func InitializeHandler(db *gorm.DB, cache2 cache.Cache) *router.Handler {
 	iAuthRepository := repository.NewAuthRepository(db, cache2)
 	iAuthService := service.NewAuthService(iAuthRepository, iAccountRepository, iUserRepository)
 	iAuthHandler := handler.NewAuthHandler(validate, iAuthService)
-	iMatchmakingRepository := repository.NewMatchmakingRepository(db)
+	iMatchmakingRepository := repository.NewMatchmakingRepository(db, cache2)
 	iMatchmakingService := service.NewMatchMakingService(iMatchmakingRepository)
 	iMatchmakingHandler := handler.NewMatchMakingHandler(validate, iMatchmakingService)
 	routerHandler := &router.Handler{
